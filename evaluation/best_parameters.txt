@@ -1,0 +1,40 @@
+Logistic Regression_Selected_Features:
+  C: 1
+  class_weight: balanced
+  solver: saga
+
+Decision Tree_Selected_Features:
+  class_weight: None
+  max_depth: 3
+  min_samples_leaf: 1
+  min_samples_split: 2
+
+Random Forest_Selected_Features:
+  class_weight: balanced
+  max_depth: 10
+  min_samples_leaf: 1
+  min_samples_split: 5
+  n_estimators: 50
+
+XGBoost_Selected_Features:
+  colsample_bytree: 1.0
+  learning_rate: 0.1
+  max_depth: 3
+  n_estimators: 50
+  scale_pos_weight: 3
+  subsample: 0.8
+
+SVM_Selected_Features:
+  C: 10
+  class_weight: balanced
+  gamma: scale
+  kernel: linear
+
+Gradient Boosting_Selected_Features:
+  learning_rate: 0.1
+  max_depth: 5
+  min_samples_leaf: 1
+  min_samples_split: 5
+  n_estimators: 50
+  subsample: 1.0
+
