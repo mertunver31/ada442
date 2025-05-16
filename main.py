@@ -2,12 +2,6 @@ import streamlit as st
 import traceback
 import sys
 
-st.set_page_config(
-    page_title="Bank Marketing Prediction App",
-    page_icon="💰",
-    layout="wide"
-)
-
 try:
     import app
 except Exception as e:
