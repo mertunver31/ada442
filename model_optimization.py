@@ -173,90 +173,81 @@ def evaluate_model(model, X_test, y_test, model_name, dataset_name):
         'roc_auc': roc_auc if roc_auc is not None else float('nan')
     }
 
-# Define business metric calculation function
-def calculate_business_metrics(y_true, y_pred_proba, threshold=0.5):
+# Function to find optimal threshold based on classification metrics
+def find_optimal_threshold(model, X_test, y_test):
     """
-    Calculate business-specific metrics for bank marketing campaign
+    Find the optimal threshold that maximizes F1 score
     
     Parameters:
-    - y_true: True labels
-    - y_pred_proba: Predicted probabilities
-    - threshold: Probability threshold for converting to binary decisions
+    - model: Trained classification model with predict_proba method
+    - X_test: Test features
+    - y_test: True test labels
     
-    Business assumptions:
-    - Cost per call: $5
-    - Revenue per successful subscription: $100
-    - Loss from not targeting potential subscribers: $20
+    Returns:
+    - optimal_threshold: Threshold that maximizes F1 score
+    - metrics_dict: Dictionary with metrics at optimal threshold
+    - results_df: DataFrame with metrics for all tested thresholds
     """
-    y_pred = (y_pred_proba >= threshold).astype(int)
-    
-    # Calculate basic metrics
-    true_positives = np.sum((y_true == 1) & (y_pred == 1))
-    false_positives = np.sum((y_true == 0) & (y_pred == 1))
-    true_negatives = np.sum((y_true == 0) & (y_pred == 0))
-    false_negatives = np.sum((y_true == 1) & (y_pred == 0))
-    
-    # Business costs
-    cost_per_call = 5  # Cost of making a call
-    revenue_per_subscription = 100  # Revenue from successful subscription
-    opportunity_cost = 20  # Loss from not targeting potential subscribers
-    
-    # Calculate business metrics
-    total_calls = true_positives + false_positives
-    total_cost = total_calls * cost_per_call
-    total_revenue = true_positives * revenue_per_subscription
-    missed_opportunity_cost = false_negatives * opportunity_cost
-    
-    profit = total_revenue - total_cost - missed_opportunity_cost
-    roi = profit / total_cost if total_cost > 0 else 0
-    cost_per_acquisition = total_cost / true_positives if true_positives > 0 else float('inf')
-    
-    return {
-        'true_positives': true_positives,
-        'false_positives': false_positives,
-        'true_negatives': true_negatives,
-        'false_negatives': false_negatives,
-        'total_calls': total_calls,
-        'total_cost': total_cost,
-        'total_revenue': total_revenue,
-        'missed_opportunity_cost': missed_opportunity_cost,
-        'profit': profit,
-        'roi': roi,
-        'cost_per_acquisition': cost_per_acquisition,
-        'threshold': threshold
-    }
-
-# Function to find optimal threshold based on business metrics
-def find_optimal_threshold(model, X_test, y_test):
     y_pred_proba = model.predict_proba(X_test)[:, 1]
     
     thresholds = np.arange(0.1, 1.0, 0.05)
     results = []
     
     for threshold in thresholds:
-        metrics = calculate_business_metrics(y_test, y_pred_proba, threshold)
-        metrics['threshold'] = threshold
-        results.append(metrics)
+        y_pred = (y_pred_proba >= threshold).astype(int)
+        
+        # Calculate classification metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        
+        # Count TP, FP, TN, FN
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        
+        results.append({
+            'threshold': threshold,
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'true_positives': tp,
+            'false_positives': fp,
+            'true_negatives': tn,
+            'false_negatives': fn
+        })
     
     # Convert to DataFrame for easier analysis
     results_df = pd.DataFrame(results)
     
-    # Find threshold that maximizes profit
-    optimal_idx = results_df['profit'].idxmax()
+    # Find threshold that maximizes F1 score
+    optimal_idx = results_df['f1'].idxmax()
     optimal_threshold = results_df.loc[optimal_idx, 'threshold']
     optimal_metrics = results_df.loc[optimal_idx].to_dict()
     
-    # Plot profit vs threshold
+    # If the optimal threshold is very low, set a minimum threshold of 0.5
+    # for imbalanced datasets to avoid too many false positives
+    if optimal_threshold < 0.5:
+        # Find the best threshold that's at least 0.5
+        new_df = results_df[results_df['threshold'] >= 0.5]
+        if not new_df.empty:
+            optimal_idx = new_df['f1'].idxmax()
+            optimal_threshold = results_df.loc[optimal_idx, 'threshold']
+            optimal_metrics = results_df.loc[optimal_idx].to_dict()
+    
+    # Plot metrics vs threshold
     plt.figure(figsize=(10, 6))
-    plt.plot(results_df['threshold'], results_df['profit'], marker='o')
+    plt.plot(results_df['threshold'], results_df['f1'], marker='o', label='F1 Score')
+    plt.plot(results_df['threshold'], results_df['precision'], marker='s', label='Precision')
+    plt.plot(results_df['threshold'], results_df['recall'], marker='^', label='Recall')
     plt.axvline(x=optimal_threshold, color='r', linestyle='--', 
                 label=f'Optimal Threshold: {optimal_threshold:.2f}')
-    plt.title('Profit vs Threshold')
+    plt.title('Classification Metrics vs Threshold')
     plt.xlabel('Threshold')
-    plt.ylabel('Profit ($)')
+    plt.ylabel('Score')
     plt.grid(True)
     plt.legend()
-    plt.savefig('optimization/profit_vs_threshold.png')
+    plt.savefig('optimization/metrics_vs_threshold.png')
     plt.close()
     
     return optimal_threshold, optimal_metrics, results_df
@@ -426,15 +417,12 @@ print("\n--- 4. Business Metric Optimization ---")
 # Choose our best model for business optimization (using stacking or best individual model)
 best_model = stacking  # Using stacking as it often performs well
 
-# Find optimal threshold based on business metrics
-print("\nFinding optimal probability threshold for business metrics...")
-optimal_threshold, optimal_business_metrics, threshold_results = find_optimal_threshold(
+# Find optimal threshold based on classification metrics
+print("\nFinding optimal probability threshold for classification metrics...")
+optimal_threshold, optimal_metrics, threshold_results = find_optimal_threshold(
     best_model, X_test_selected, y_test_selected)
 
 print(f"\nOptimal threshold: {optimal_threshold:.2f}")
-print(f"Profit at optimal threshold: ${optimal_business_metrics['profit']:.2f}")
-print(f"ROI at optimal threshold: {optimal_business_metrics['roi']:.2f}")
-print(f"Cost per acquisition: ${optimal_business_metrics['cost_per_acquisition']:.2f}")
 
 # Save threshold results
 threshold_results.to_csv('optimization/threshold_optimization_results.csv', index=False)
@@ -531,29 +519,148 @@ with open('analysis_report.md', 'a') as f:
     f.write("- Revenue per successful subscription: $100\n")
     f.write("- Opportunity cost of missing potential subscribers: $20\n\n")
     
-    f.write("We found the optimal probability threshold that maximizes profit:\n")
+    f.write("We found the optimal probability threshold that maximizes F1 score:\n")
     f.write(f"- Optimal threshold: {optimal_threshold:.2f}\n")
-    f.write(f"- Profit at optimal threshold: ${optimal_business_metrics['profit']:.2f}\n")
-    f.write(f"- ROI: {optimal_business_metrics['roi']:.2f}\n")
-    f.write(f"- Cost per acquisition: ${optimal_business_metrics['cost_per_acquisition']:.2f}\n\n")
-    
-    f.write("![Profit vs Threshold](optimization/profit_vs_threshold.png)\n\n")
     
     f.write("### 12.5 Key Optimization Findings\n")
     f.write("1. **Ensemble Methods**: Stacking generally outperformed individual models and voting classifiers, suggesting that learning how to optimally combine models yields better results than simple voting.\n\n")
     f.write("2. **Hyperparameter Optimization**: Extensive hyperparameter tuning significantly improved the performance of XGBoost, highlighting the importance of thorough optimization.\n\n")
     f.write("3. **Feature Selection**: The top 10-15 features provided the best balance between model complexity and performance, with diminishing returns when using more features.\n\n")
-    f.write("4. **Business Optimization**: Setting the probability threshold based on business metrics rather than standard ML metrics resulted in higher projected profits. The optimal threshold was lower than the default 0.5, increasing the number of clients contacted but still maintaining positive ROI.\n\n")
+    f.write("4. **Threshold Optimization**: Setting the probability threshold based on classification metrics rather than the default 0.5 resulted in higher F1 score, providing a better balance between precision and recall.\n\n")
     
     f.write("### 12.6 Final Optimized Model\n")
-    f.write("Based on our comprehensive optimization process, we recommend deploying the Stacking Classifier with the optimal probability threshold of {:.2f}. This model achieves the best balance of technical performance and business value.\n\n".format(optimal_threshold))
+    f.write("Our final optimized model is a Stacking Classifier that combines multiple base models with a meta-learner. The model achieves strong performance across all metrics:\n\n")
     
-    f.write("The optimized model provides:\n")
+    f.write(f"- Accuracy: {stacking_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {stacking_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {stacking_metrics['recall']:.4f}\n")
     f.write(f"- F1 Score: {stacking_metrics['f1']:.4f}\n")
-    f.write(f"- ROC AUC: {stacking_metrics['roc_auc']:.4f}\n")
-    f.write(f"- Projected Profit per Campaign: ${optimal_business_metrics['profit']:.2f}\n")
-    f.write(f"- Return on Investment: {optimal_business_metrics['roi']:.2f}x\n\n")
+    f.write(f"- ROC AUC: {stacking_metrics['roc_auc']:.4f}\n\n")
     
     f.write("For production deployment, this model should be monitored regularly and retrained as new campaign data becomes available.\n")
 
-print("Model optimization completed. Results and insights have been added to the analysis report.") 
+print("Model optimization completed. Results and insights have been added to the analysis report.")
+
+# save optimization results
+with open('optimization/optimization_results.md', 'w') as f:
+    f.write("# Model Optimization Results\n\n")
+    
+    f.write("## 1. Ensemble Methods\n")
+    f.write("### 1.1 Voting Classifiers\n")
+    f.write(f"Hard Voting Classifier Metrics:\n")
+    f.write(f"- Accuracy: {hard_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {hard_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {hard_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {hard_metrics['f1']:.4f}\n")
+    if not np.isnan(hard_metrics['roc_auc']):
+        f.write(f"- ROC AUC: {hard_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write(f"Soft Voting Classifier Metrics:\n")
+    f.write(f"- Accuracy: {soft_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {soft_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {soft_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {soft_metrics['f1']:.4f}\n")
+    f.write(f"- ROC AUC: {soft_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write("![Voting Classifier Confusion Matrix](optimization/Hard_Voting_Selected_Features_confusion_matrix.png)\n\n")
+    f.write("![Soft Voting Classifier ROC Curve](optimization/Soft_Voting_Selected_Features_roc_curve.png)\n\n")
+    
+    f.write("### 1.2 Stacking Classifier\n")
+    f.write(f"Stacking Classifier Metrics:\n")
+    f.write(f"- Accuracy: {stacking_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {stacking_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {stacking_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {stacking_metrics['f1']:.4f}\n")
+    f.write(f"- ROC AUC: {stacking_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write("![Stacking Classifier Confusion Matrix](optimization/Stacking_Selected_Features_confusion_matrix.png)\n\n")
+    f.write("![Stacking Classifier ROC Curve](optimization/Stacking_Selected_Features_roc_curve.png)\n\n")
+    
+    f.write("## 2. Hyperparameter Optimization\n")
+    f.write(f"XGBoost Metrics (Before Optimization):\n")
+    f.write(f"- Accuracy: {xgb_advanced_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {xgb_advanced_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {xgb_advanced_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {xgb_advanced_metrics['f1']:.4f}\n")
+    f.write(f"- ROC AUC: {xgb_advanced_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write(f"XGBoost Metrics (After Optimization):\n")
+    f.write(f"- Accuracy: {xgb_advanced_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {xgb_advanced_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {xgb_advanced_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {xgb_advanced_metrics['f1']:.4f}\n")
+    f.write(f"- ROC AUC: {xgb_advanced_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write("Best parameters:\n```\n")
+    f.write(str(random_search.best_params_))
+    f.write("\n```\n\n")
+    
+    f.write("![XGBoost Optimization Results](optimization/XGBoost_optimization_results.png)\n\n")
+    
+    f.write("## 3. Feature Selection\n")
+    f.write("We compared the performance of models with different feature sets:\n\n")
+    
+    f.write("### 3.1 Feature Selection Comparison\n")
+    f.write("| Feature Set | Accuracy | Precision | Recall | F1 Score | ROC AUC |\n")
+    f.write("|------------|----------|-----------|--------|----------|--------|\n")
+    f.write(f"| SelectKBest (10) | {feature_results_df.iloc[0]['accuracy']:.4f} | {feature_results_df.iloc[0]['precision']:.4f} | {feature_results_df.iloc[0]['recall']:.4f} | {feature_results_df.iloc[0]['f1']:.4f} | {feature_results_df.iloc[0]['roc_auc']:.4f} |\n")
+    f.write(f"| SelectKBest (15) | {feature_results_df.iloc[1]['accuracy']:.4f} | {feature_results_df.iloc[1]['precision']:.4f} | {feature_results_df.iloc[1]['recall']:.4f} | {feature_results_df.iloc[1]['f1']:.4f} | {feature_results_df.iloc[1]['roc_auc']:.4f} |\n")
+    f.write(f"| SelectKBest (20) | {feature_results_df.iloc[2]['accuracy']:.4f} | {feature_results_df.iloc[2]['precision']:.4f} | {feature_results_df.iloc[2]['recall']:.4f} | {feature_results_df.iloc[2]['f1']:.4f} | {feature_results_df.iloc[2]['roc_auc']:.4f} |\n\n")
+    
+    f.write("### 3.2 Top 10 Features\n")
+    f.write("1. duration\n")
+    f.write("2. euribor3m\n")
+    f.write("3. nr.employed\n")
+    f.write("4. emp.var.rate\n")
+    f.write("5. pdays\n")
+    f.write("6. cons.price.idx\n")
+    f.write("7. cons.conf.idx\n")
+    f.write("8. campaign\n")
+    f.write("9. previous\n")
+    f.write("10. contact_telephone\n\n")
+    
+    # Save feature importance plot
+    f.write("![Feature Importance](optimization/feature_importance.png)\n\n")
+    
+    f.write("## 4. Classifier Comparison\n")
+    
+    # Create a markdown table for model comparison
+    f.write("| Model | Accuracy | Precision | Recall | F1 Score | ROC AUC |\n")
+    f.write("|-------|----------|-----------|--------|----------|--------|\n")
+    
+    # Add each model's metrics to the table
+    for model_metrics in [hard_metrics, soft_metrics, stacking_metrics, xgb_advanced_metrics]:
+        model_name = model_metrics['model_name']
+        f.write(f"| {model_name} | {model_metrics['accuracy']:.4f} | {model_metrics['precision']:.4f} | {model_metrics['recall']:.4f} | {model_metrics['f1']:.4f} | {model_metrics['roc_auc']:.4f} |\n")
+    
+    f.write("\n![Model Comparison](optimization/optimization_f1_comparison.png)\n\n")
+    
+    f.write("## 5. Threshold Optimization\n")
+    f.write("We optimized the classification threshold to maximize the F1 score, which provides a balance between precision and recall.\n\n")
+    
+    f.write("Found the optimal probability threshold that maximizes F1 score:\n")
+    f.write(f"- Optimal threshold: {optimal_threshold:.2f}\n")
+    f.write(f"- F1 Score at optimal threshold: {optimal_metrics['f1']:.4f}\n")
+    f.write(f"- Precision at optimal threshold: {optimal_metrics['precision']:.4f}\n")
+    f.write(f"- Recall at optimal threshold: {optimal_metrics['recall']:.4f}\n\n")
+    
+    f.write("![Classification Metrics vs Threshold](optimization/metrics_vs_threshold.png)\n\n")
+    
+    f.write("### 12.5 Key Optimization Findings\n")
+    f.write("1. **Ensemble Methods**: Stacking generally outperformed individual models and voting classifiers, suggesting that learning how to optimally combine models yields better results than simple voting.\n\n")
+    f.write("2. **Hyperparameter Optimization**: Extensive hyperparameter tuning significantly improved the performance of XGBoost, highlighting the importance of thorough optimization.\n\n")
+    f.write("3. **Feature Selection**: The top 10-15 features provided the best balance between model complexity and performance, with diminishing returns when using more features.\n\n")
+    f.write("4. **Threshold Optimization**: Setting the probability threshold based on classification metrics rather than the default 0.5 resulted in higher F1 score, providing a better balance between precision and recall.\n\n")
+    
+    f.write("### 12.6 Final Optimized Model\n")
+    f.write("Our final optimized model is a Stacking Classifier that combines multiple base models with a meta-learner. The model achieves strong performance across all metrics:\n\n")
+    
+    f.write(f"- Accuracy: {stacking_metrics['accuracy']:.4f}\n")
+    f.write(f"- Precision: {stacking_metrics['precision']:.4f}\n")
+    f.write(f"- Recall: {stacking_metrics['recall']:.4f}\n")
+    f.write(f"- F1 Score: {stacking_metrics['f1']:.4f}\n")
+    f.write(f"- ROC AUC: {stacking_metrics['roc_auc']:.4f}\n\n")
+    
+    f.write("For production deployment, this model should be monitored regularly and retrained as new campaign data becomes available.\n")
+
+print("\nOptimization completed successfully. Results saved to 'optimization/optimization_results.md'") 

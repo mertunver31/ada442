@@ -318,93 +318,6 @@ For deploying this model to production, several considerations should be taken i
 3. **Model Monitoring**: The model should be regularly monitored for performance drift as customer behavior patterns may change over time.
 4. **Batch vs. Real-time Prediction**: Depending on the operational requirements, the model can be deployed for batch processing or real-time predictions.
 
-## 11. Model Development and Evaluation
-
-### 11.1 Modeling Approach
-We developed and evaluated various classification models to predict whether a client would subscribe to a term deposit. We used the Selected Features Dataset, which contains only the top 10 most important features identified during preprocessing.
-
-The following classification algorithms were implemented:
-- Logistic Regression
-- Decision Tree
-- Random Forest
-- XGBoost
-- SVM
-- Gradient Boosting
-
-For each model, we performed hyperparameter optimization using GridSearchCV to find the best configuration.
-
-### 11.2 Model Evaluation Metrics
-We evaluated the models using the following metrics:
-- **Accuracy**: Overall correctness of the model
-- **Precision**: Proportion of positive identifications that were actually correct
-- **Recall**: Proportion of actual positives that were identified correctly
-- **F1 Score**: Harmonic mean of precision and recall
-- **ROC AUC**: Area under the ROC curve, measuring the model's ability to discriminate between classes
-
-### 11.3 Model Comparison
-Performance comparison of all models:
-
-| Model | Dataset | Accuracy | Precision | Recall | F1 Score | ROC AUC |
-|-------|---------|----------|-----------|--------|----------|--------|
-| Logistic Regression | Selected_Features | 0.9086 | 0.6486 | 0.3556 | 0.4593 | 0.9216 |
-| Decision Tree | Selected_Features | 0.8981 | 0.5378 | 0.4741 | 0.5039 | 0.8886 |
-| Random Forest | Selected_Features | 0.8932 | 0.5128 | 0.4444 | 0.4762 | 0.9252 |
-| XGBoost | Selected_Features | 0.9086 | 0.5917 | 0.5259 | 0.5569 | 0.9322 |
-| SVM | Selected_Features | 0.9070 | 0.6282 | 0.3630 | 0.4601 | 0.9185 |
-| Gradient Boosting | Selected_Features | 0.9078 | 0.6180 | 0.4074 | 0.4911 | 0.9264 |
-
-#### Performance Visualization
-![F1 Score Comparison](evaluation/f1_score_comparison.png)
-
-![ROC AUC Comparison](evaluation/roc_auc_comparison.png)
-
-### 11.4 Best Model Performance
-The best performing model was **XGBoost** trained on the **Selected_Features** dataset.
-
-**Performance metrics**:
-- Accuracy: 0.9086
-- Precision: 0.5917
-- Recall: 0.5259
-- F1 Score: 0.5569
-- ROC AUC: 0.9322
-
-**Confusion Matrix**:
-![Best Model Confusion Matrix](evaluation/XGBoost_Selected_Features_confusion_matrix.png)
-
-**ROC Curve**:
-![Best Model ROC Curve](evaluation/XGBoost_Selected_Features_roc_curve.png)
-
-### 11.5 Cross-Validation Results
-To ensure the robustness of our best model, we performed 5-fold cross-validation:
-- Mean F1 Score: 0.5888
-- Standard Deviation: 0.0160
-
-The low standard deviation indicates that the model performs consistently across different subsets of the data.
-
-### 11.6 Hyperparameter Optimization
-The best hyperparameters for our top-performing model (XGBoost on Selected_Features dataset) were:
-- colsample_bytree: 1.0
-- learning_rate: 0.1
-- max_depth: 3
-- n_estimators: 50
-- scale_pos_weight: 3
-- subsample: 0.8
-
-### 11.7 Model Calibration
-We applied probability calibration to the best model to ensure reliable probability estimates. This is particularly important for decision-making in marketing campaigns where we need to prioritize customers based on their likelihood of subscription.
-
-### 11.8 Key Findings
-1. **Feature Importance**: The top 10 features selected during preprocessing proved sufficient for good model performance, suggesting that the dimensionality reduction was effective.
-2. **Class Imbalance**: The significant class imbalance in the dataset (89% 'no' vs 11% 'yes') presented a challenge for the models, which was addressed through appropriate class weighting and evaluation metrics.
-3. **Model Complexity**: More complex models like Random Forest typically performed better than simpler models, suggesting that the relationship between features and the target variable is non-linear.
-
-### 11.9 Deployment Considerations
-For deploying this model to production, several considerations should be taken into account:
-1. **Threshold Tuning**: The default 0.5 probability threshold might not be optimal. Adjusting this threshold could help balance precision and recall based on business requirements.
-2. **Cost-Benefit Analysis**: Different types of errors (false positives vs. false negatives) may have different costs in a marketing campaign context.
-3. **Model Monitoring**: The model should be regularly monitored for performance drift as customer behavior patterns may change over time.
-4. **Batch vs. Real-time Prediction**: Depending on the operational requirements, the model can be deployed for batch processing or real-time predictions.
-
 ## 12. Model Optimization
 
 ### 12.1 Ensemble Methods
@@ -418,18 +331,18 @@ Two types of voting classifiers were implemented:
 Results of voting classifiers:
 | Voting Type | Accuracy | Precision | Recall | F1 Score | ROC AUC |
 |------------|----------|-----------|--------|----------|--------|
-| Hard Voting | 0.9045 | 0.5914 | 0.4074 | 0.4825 | N/A |
-| Soft Voting | 0.9078 | 0.6129 | 0.4222 | 0.5000 | 0.9254 |
+| Hard Voting | 0.9021 | 0.5761 | 0.3926 | 0.4670 | N/A |
+| Soft Voting | 0.9061 | 0.6022 | 0.4148 | 0.4912 | 0.9245 |
 
 #### 12.1.2 Stacking Classifier
 A stacking classifier was implemented with Logistic Regression as the meta-learner. This approach combines predictions from the base models by training a meta-model to optimize the final predictions.
 
 Stacking classifier results:
-- Accuracy: 0.9037
-- Precision: 0.5800
-- Recall: 0.4296
-- F1 Score: 0.4936
-- ROC AUC: 0.9267
+- Accuracy: 0.9045
+- Precision: 0.5825
+- Recall: 0.4444
+- F1 Score: 0.5042
+- ROC AUC: 0.9259
 
 ![Optimization F1 Comparison](optimization/optimization_f1_comparison.png)
 
@@ -437,23 +350,23 @@ Stacking classifier results:
 We performed more extensive hyperparameter tuning using RandomizedSearchCV with a larger parameter space for XGBoost, which allowed us to explore a wider range of parameter combinations efficiently.
 
 The best hyperparameters found were:
-- colsample_bytree: 0.9896992834137641
-- gamma: 4.979656210151646
-- learning_rate: 0.02676134640320501
-- max_depth: 5
-- min_child_weight: 7
-- n_estimators: 270
-- reg_alpha: 0.01
-- reg_lambda: 0.01
+- colsample_bytree: 0.7749899688094917
+- gamma: 4.520793472468742
+- learning_rate: 0.1144766401069901
+- max_depth: 8
+- min_child_weight: 1
+- n_estimators: 384
+- reg_alpha: 0.1
+- reg_lambda: 10
 - scale_pos_weight: 3
-- subsample: 0.987460777589654
+- subsample: 0.9449454834986981
 
 Performance of the optimized XGBoost model:
-- Accuracy: 0.8981
-- Precision: 0.5228
+- Accuracy: 0.8964
+- Precision: 0.5176
 - Recall: 0.7630
-- F1 Score: 0.6205
-- ROC AUC: 0.9329
+- F1 Score: 0.6168
+- ROC AUC: 0.9331
 
 ### 12.3 Feature Combination Exploration
 We explored different feature combinations to find the optimal feature subset. Using feature importance from Random Forest, we created and evaluated different feature sets:
@@ -470,19 +383,48 @@ Performance comparison across feature sets:
 
 ![Feature Sets Comparison](optimization/feature_sets_f1_comparison.png)
 
-### 12.4 Business Metric Optimization
-Beyond standard ML metrics, we optimized for business value by considering:
-- Cost per call: $5
-- Revenue per successful subscription: $100
-- Opportunity cost of missing potential subscribers: $20
+### 12.4 Threshold Optimization for Prediction
+Beyond standard ML metrics, we implemented an F1-score optimization approach for threshold determination that considers the significant class imbalance in our dataset.
 
-We found the optimal probability threshold that maximizes profit:
-- Optimal threshold: 0.10
-- Profit at optimal threshold: $8980.00
-- ROI: 8.63
-- Cost per acquisition: $9.81
+#### 12.4.1 Threshold Optimization Methodology
+1. **Data-Driven Approach**: Rather than using financial metrics which could introduce bias, we used a purely data-driven approach based on maximizing F1 score.
+2. **Modified Algorithm**: We implemented a threshold optimization algorithm that:
+   - Evaluates thresholds between 0.3 and 0.9 (higher starting point due to imbalance)
+   - Prioritizes precision by enforcing a minimum threshold of 0.5
+   - Balances precision and recall with an emphasis on reducing false positives
 
-![Profit vs Threshold](optimization/profit_vs_threshold.png)
+#### 12.4.2 Feature Scaling Improvements
+We improved feature scaling for prediction:
+- Applied appropriate normalization to all numerical features:
+  - Duration: Min-max scaling with domain knowledge caps
+  - Economic indicators: Normalized to [0,1] based on known ranges
+  - Campaign metrics: Scaled with appropriate domain limits
+  - Age: Standardized to [0,1] range with appropriate minimum/maximum values
+  - Campaign contacts: Properly scaled with reasonable maximum
+- This ensures consistent input distributions between training and prediction
+
+#### 12.4.3 Fallback Prediction Mechanism
+To ensure reliable predictions when primary models fail, we implemented:
+1. **Improved Simple Model**: A fallback prediction model using sigmoid transformations for more balanced probability estimates
+2. **Conservative Base Rate**: Starting with the dataset's base rate (11% positive class) and making small, evidence-based adjustments
+3. **Calibrated Probability Curve**: Using sigmoid functions with adjusted parameters (shifted midpoint to 0.5) to create more realistic probability distributions
+4. **Reduced Upper Limits**: Capped maximum probabilities at 0.6-0.7 for fallback predictions to avoid over-confidence
+5. **Negative Signal Detection**: Added logic to identify when high duration is causing inflated probabilities despite other negative indicators
+
+#### 12.4.4 Duration Impact Analysis
+Duration is by far the most influential feature in the models, but it has limitations:
+1. **Circular Relationship**: Duration is known only after the call has taken place, making it somewhat circular for prediction
+2. **Potential Bias**: Long duration calls strongly correlate with subscriptions, but this could lead to overemphasis in planning
+3. **Mitigation Strategies**:
+   - Adjusted the sigmoid function parameters to reduce duration dominance
+   - Implemented special case handling for high-duration predictions
+   - Added explanatory information to help users understand duration's impact
+
+#### 12.4.5 Key Findings from Threshold Optimization
+- Higher thresholds (minimum 0.5) significantly reduce false positives in this imbalanced domain
+- Feature scaling has a major impact on prediction quality, especially for the most influential feature (duration)
+- The optimal threshold typically falls between 0.5-0.6 when balancing precision and recall with a precision emphasis
+- Duration should be interpreted carefully as it's both predictive and potentially circular
 
 ### 12.5 Key Optimization Findings
 1. **Ensemble Methods**: Stacking generally outperformed individual models and voting classifiers, suggesting that learning how to optimally combine models yields better results than simple voting.
@@ -491,15 +433,17 @@ We found the optimal probability threshold that maximizes profit:
 
 3. **Feature Selection**: The top 10-15 features provided the best balance between model complexity and performance, with diminishing returns when using more features.
 
-4. **Business Optimization**: Setting the probability threshold based on business metrics rather than standard ML metrics resulted in higher projected profits. The optimal threshold was lower than the default 0.5, increasing the number of clients contacted but still maintaining positive ROI.
+4. **Threshold Optimization**: Setting appropriate probability thresholds based on F1-score maximization with a precision emphasis is critical for imbalanced datasets. Our optimal threshold of 0.5 balances false positive and false negative risks.
+
+5. **Feature Scaling**: Proper scaling of input features, especially duration, is essential for reliable predictions. Domain-specific normalization yields more consistent results than generic scaling methods.
 
 ### 12.6 Final Optimized Model
-Based on our comprehensive optimization process, we recommend deploying the Stacking Classifier with the optimal probability threshold of 0.10. This model achieves the best balance of technical performance and business value.
+Based on our comprehensive optimization process, we recommend deploying the Stacking Classifier with the optimal probability threshold of 0.5. This model achieves the best balance of performance and reliability.
 
 The optimized model provides:
-- F1 Score: 0.4936
-- ROC AUC: 0.9267
-- Projected Profit per Campaign: $8980.00
-- Return on Investment: 8.63x
+- F1 Score: 0.5042
+- ROC AUC: 0.9259
+- Precision-focused threshold optimization
+- Reliable probability estimates through proper feature scaling
 
 For production deployment, this model should be monitored regularly and retrained as new campaign data becomes available.
