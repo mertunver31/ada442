@@ -347,7 +347,13 @@ def main():
         
         # Home page
         if page == "Home":
-            # ... existing code ...
+            st.title("Bank Marketing Prediction")
+            st.write("""
+            ## Welcome to the Bank Marketing Prediction App
+            
+            This application demonstrates machine learning methods for banking marketing campaign optimization.
+            """)
+            pass
     except Exception as e:
         st.error("### Beklenmeyen bir hata oluştu")
         st.error(f"**Hata mesajı:** {str(e)}")
