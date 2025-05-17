@@ -196,7 +196,13 @@ def load_models():
             # st.success("Successfully loaded new stacking model!")
         except Exception as e:
             # st.warning(f"Could not load new stacking model: {e}. Will try alternatives.")
-            models['stacking'] = None
+            # Try from models directory
+            try:
+                models['stacking'] = joblib.load('models/Stacking.pkl')
+                # st.success("Successfully loaded stacking model from models directory!")
+            except Exception as e2:
+                # st.warning(f"Could not load stacking model from models: {e2}")
+                models['stacking'] = None
             
         # Try loading individual models
         for model_name in ['Logistic_Regression', 'XGBoost', 'Random_Forest', 'Gradient_Boosting', 'SVM', 'Decision_Tree']:
@@ -205,7 +211,13 @@ def load_models():
                 # st.success(f"Successfully loaded new {model_name} model!")
             except Exception as e:
                 # st.warning(f"Could not load new {model_name} model: {e}")
-                models[model_name.lower()] = None
+                # Try from models directory
+                try:
+                    models[model_name.lower()] = joblib.load(f'models/{model_name}.pkl')
+                    # st.success(f"Successfully loaded {model_name} model from models directory!")
+                except Exception as e2:
+                    # st.warning(f"Could not load {model_name} model from models: {e2}")
+                    models[model_name.lower()] = None
 
         # Calculate optimal threshold using test data if available
         try:
