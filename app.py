@@ -139,15 +139,25 @@ def find_optimal_threshold(y_true, y_pred_proba):
     return optimal_threshold, threshold_metrics
 
 # Function to make prediction with fallback mechanism
-def make_prediction(models, model_input):
-    """Try to predict using various models with fallback mechanism"""
-    # Try models in order of preference
+def make_prediction(models, model_input, selected_model_key='xgboost'):
+    """Make prediction using the selected model with fallback mechanism"""
+    # First try the user-selected model
+    if models.get(selected_model_key) is not None:
+        try:
+            # Try to make prediction with the selected model
+            probability = models[selected_model_key].predict_proba(model_input)[0, 1]
+            st.info(f"Using {selected_model_key} model for prediction.")
+            return probability
+        except Exception as e:
+            st.warning(f"Error using {selected_model_key} model: {e}. Trying fallback models.")
+    
+    # If selected model fails or is not available, try fallback models in order of preference
     for model_name in ['stacking', 'xgboost', 'random_forest', 'logistic']:
-        if models.get(model_name) is not None:
+        if model_name != selected_model_key and models.get(model_name) is not None:
             try:
                 # Try to make prediction with this model
                 probability = models[model_name].predict_proba(model_input)[0, 1]
-                st.info(f"Using {model_name} model for prediction.")
+                st.info(f"Using {model_name} model for prediction (fallback).")
                 return probability
             except Exception as e:
                 st.warning(f"Error using {model_name} model: {e}. Trying next model.")
@@ -536,7 +546,7 @@ def main():
                     model_input = model_input.reshape(1, -1)
                     
                     # Make prediction
-                    probability = make_prediction(models, model_input)
+                    probability = make_prediction(models, model_input, selected_model_key)
                     
                     # Check if the probability is higher than the optimal threshold
                     optimal_threshold = models.get('optimal_threshold', 0.5)
@@ -584,9 +594,9 @@ def main():
                         
                         # Decision
                         if is_likely_subscriber:
-                            st.info(f"**Tahmin**: Müşteri, vadeli mevduat aboneliği yapma olasılığı **%{probability*100:.1f}** ile **YÜKSEK** olarak değerlendirildi.")
+                            st.success(f"**TAHMİN SONUCU**: Müşteri, vadeli mevduat aboneliği yapma olasılığı **%{probability*100:.1f}** ile **YÜKSEK** olarak değerlendirildi.")
                         else:
-                            st.info(f"**Tahmin**: Müşteri, vadeli mevduat aboneliği yapma olasılığı **%{probability*100:.1f}** ile **DÜŞÜK** olarak değerlendirildi.")
+                            st.error(f"**TAHMİN SONUCU**: Müşteri, vadeli mevduat aboneliği yapma olasılığı **%{probability*100:.1f}** ile **DÜŞÜK** olarak değerlendirildi.")
                     
                     with col2:
                         # Vertical divider
@@ -601,129 +611,526 @@ def main():
                         # Show optimal threshold
                         st.write(f"**Optimal Threshold**: {optimal_threshold:.2f}")
                         
+                        # Add threshold explanation and adjustment
+                        with st.expander("Threshold (Eşik Değeri) Hakkında", expanded=False):
+                            st.markdown("""
+                            **Threshold (Eşik Değeri) Nedir?**
+                            
+                            Threshold, model tahminlerinin "Evet" veya "Hayır" olarak sınıflandırılması için kullanılan kesim noktasıdır.
+                            
+                            **Nasıl Hesaplanır?**
+                            1. **F1-Score Optimizasyonu**: 0.3 ile 0.9 arasındaki threshold değerleri test edilir
+                            2. **Minimum Değer Uygulaması**: Yanlış pozitifleri azaltmak için minimum 0.5 threshold uygulanır
+                            3. **Precision Odaklı Yaklaşım**: Dengesiz veri setimizde (89% hayır vs 11% evet) precision metriği önceliklendirilir
+                            
+                            **Threshold Değiştirmenin Etkileri**:
+                            - **Düşük Threshold (< 0.5)**: Daha fazla müşteri pozitif tahmin edilir, yüksek recall fakat düşük precision
+                            - **Yüksek Threshold (> 0.5)**: Daha az müşteri pozitif tahmin edilir, düşük recall fakat yüksek precision
+                            
+                            **Not**: Veri setinde pozitif örneklerin az olması (sadece %11), tahmin olasılıklarının genellikle düşük çıkmasının ana sebebidir.
+                            """)
+                        
+                        # Add threshold adjustment slider
+                        custom_threshold = st.slider(
+                            "Threshold değerini ayarla:", 
+                            0.0, 1.0, float(optimal_threshold), 0.01,
+                            help="Müşterinin abone olarak tahmin edilmesi için gereken minimum olasılık değeri"
+                        )
+                        
+                        # Recalculate prediction with custom threshold
+                        is_likely_subscriber_custom = probability >= custom_threshold
+                        
+                        if custom_threshold != optimal_threshold:
+                            st.markdown(f"""
+                            <div style="padding: 10px; background-color: rgba(255, 255, 230, 0.2); border-radius: 5px; border: 1px solid rgba(255, 255, 0, 0.3);">
+                                <p><strong>Özel Threshold ile Sonuç:</strong> Threshold değerini {custom_threshold:.2f} olarak ayarladınız.</p>
+                                <p>Bu değere göre müşteri <strong>{"abone OLACAK" if is_likely_subscriber_custom else "abone OLMAYACAK"}</strong> olarak tahmin edilmektedir.</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
                         # Show prediction scale
                         st.write("**Tahmin Skalası**:")
                         
-                        # Show color scale
+                        # Create a very simple horizontal bar with gradient
                         fig = go.Figure()
                         
-                        # Add color scale
-                        fig.add_trace(go.Scatter(
-                            x=[0, 0.3, 0.5, 0.7, 1.0],
-                            y=[0, 0, 0, 0, 0],
-                            mode='markers',
-                            marker=dict(
-                                size=20,
-                                color=[0, 0.3, 0.5, 0.7, 1.0],
-                                colorscale='Blues',
+                        # Create a continuous color gradient bar
+                        fig.add_trace(go.Heatmap(
+                            z=[[1]],
+                            x=np.linspace(0, 1, 100),  # 100 points from 0 to 1
+                            y=[0],
+                            colorscale=[
+                                [0, "rgb(220, 0, 0)"],      # Start with red (low probability)
+                                [0.25, "rgb(255, 180, 0)"],  # Orange-yellow (below threshold)
+                                [0.5, "rgb(255, 230, 0)"],   # Yellow (threshold)
+                                [0.75, "rgb(180, 230, 0)"],  # Light green
+                                [1, "rgb(0, 180, 0)"]        # Dark green (high probability)
+                            ],
                                 showscale=False
-                            ),
-                            hoverinfo='none'
                         ))
                         
-                        # Add threshold line
+                        # Add default threshold marker
                         fig.add_shape(
                             type="line",
-                            x0=optimal_threshold, x1=optimal_threshold,
-                            y0=-0.1, y1=0.1,
-                            line=dict(color="red", width=2, dash="dash")
+                            x0=optimal_threshold,
+                            x1=optimal_threshold,
+                            y0=-0.5,
+                            y1=0.5,
+                            line=dict(
+                                color="black",
+                                width=3,
+                                dash="solid"
+                            )
                         )
-                        
-                        # Add labels
-                        fig.add_annotation(x=0, y=0.2, text="Çok Düşük", showarrow=False)
-                        fig.add_annotation(x=0.3, y=0.2, text="Düşük", showarrow=False)
-                        fig.add_annotation(x=0.5, y=0.2, text="Orta", showarrow=False)
-                        fig.add_annotation(x=0.7, y=0.2, text="Yüksek", showarrow=False)
-                        fig.add_annotation(x=1.0, y=0.2, text="Çok Yüksek", showarrow=False)
                         
                         # Add threshold label
                         fig.add_annotation(
                             x=optimal_threshold,
-                            y=-0.2,
-                            text="Threshold",
-                            showarrow=True,
-                            arrowhead=1
+                            y=-0.7,
+                            text=f"Optimal: {optimal_threshold:.2f}",
+                            showarrow=False,
+                            font=dict(size=14)
                         )
                         
-                        # Update layout
+                        # Add custom threshold marker if different from optimal
+                        if custom_threshold != optimal_threshold:
+                            fig.add_shape(
+                                type="line",
+                                x0=custom_threshold,
+                                x1=custom_threshold,
+                                y0=-0.5,
+                                y1=0.5,
+                                line=dict(
+                                    color="yellow",
+                                    width=3,
+                                    dash="dash"
+                                )
+                            )
+                            
+                            fig.add_annotation(
+                                x=custom_threshold,
+                                y=-0.9,
+                                text=f"Özel: {custom_threshold:.2f}",
+                                showarrow=False,
+                                font=dict(size=14, color="yellow")
+                            )
+                        
+                        # Add current prediction marker
+                        fig.add_shape(
+                            type="line",
+                            x0=probability,
+                            x1=probability,
+                            y0=-0.5,
+                            y1=0.5,
+                            line=dict(
+                                color="white",
+                                width=4,
+                                dash="solid"
+                            )
+                        )
+                        
+                        # Add outline to make the prediction marker more visible
+                        fig.add_shape(
+                            type="line",
+                            x0=probability,
+                            x1=probability,
+                            y0=-0.5,
+                            y1=0.5,
+                            line=dict(
+                                color="black",
+                                width=6,
+                                dash="solid"
+                            )
+                        )
+                        
+                        # Add prediction marker (as second layer)
+                        fig.add_shape(
+                            type="line",
+                            x0=probability,
+                            x1=probability,
+                            y0=-0.5,
+                            y1=0.5,
+                            line=dict(
+                                color="white",
+                                width=2,
+                                dash="solid"
+                            )
+                        )
+                        
+                        # Add prediction label
+                        fig.add_annotation(
+                            x=probability,
+                            y=0.7,
+                            text=f"Tahmin: {probability:.2f}",
+                            showarrow=False,
+                            font=dict(size=14)
+                        )
+                        
+                        # Add axis labels at fixed positions
+                        fig.add_annotation(
+                            x=0,
+                            y=-0.2,
+                            text="0",
+                            showarrow=False,
+                            font=dict(size=12)
+                        )
+                        fig.add_annotation(
+                            x=0.25,
+                            y=-0.2,
+                            text="0.25",
+                            showarrow=False,
+                            font=dict(size=12)
+                        )
+                        fig.add_annotation(
+                            x=0.5,
+                            y=-0.2,
+                            text="0.5",
+                            showarrow=False,
+                            font=dict(size=12)
+                        )
+                        fig.add_annotation(
+                            x=0.75,
+                            y=-0.2,
+                            text="0.75",
+                            showarrow=False,
+                            font=dict(size=12)
+                        )
+                        fig.add_annotation(
+                            x=1,
+                            y=-0.2,
+                            text="1.0",
+                            showarrow=False,
+                            font=dict(size=12)
+                        )
+                        
+                        # Set layout
                         fig.update_layout(
                             height=150,
-                            margin=dict(l=20, r=20, t=10, b=20),
-                            xaxis=dict(range=[-0.1, 1.1], showticklabels=False, showgrid=False, zeroline=False),
-                            yaxis=dict(range=[-0.3, 0.3], showticklabels=False, showgrid=False, zeroline=False),
-                            plot_bgcolor="white"
+                            margin=dict(l=20, r=20, t=50, b=70),
+                            xaxis=dict(
+                                range=[-0.05, 1.05],
+                                showticklabels=False,
+                                showgrid=False,
+                                zeroline=False,
+                                fixedrange=True
+                            ),
+                            yaxis=dict(
+                                range=[-1, 1],
+                                showticklabels=False,
+                                showgrid=False,
+                                zeroline=False,
+                                fixedrange=True
+                            ),
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            hovermode=False
                         )
                         
+                        # Display plot
                         st.plotly_chart(fig, use_container_width=True)
                         
-                        st.write("**Not**: Threshold değeri, sınıf dengesizliği ve model performansı dikkate alınarak optimize edilmiştir.")
+                        # Category text based on the probability
+                        prediction_category = "Çok Düşük"
+                        if probability >= 0.75:
+                            prediction_category = "Çok Yüksek"
+                        elif probability >= 0.5:
+                            prediction_category = "Yüksek"
+                        elif probability >= 0.25:
+                            prediction_category = "Orta"
+                        elif probability >= 0:
+                            prediction_category = "Düşük"
+                        
+                        # Show categorical result
+                        st.markdown(f"""
+                        <div style="text-align: center; padding: 10px; background-color: rgba(240, 242, 246, 0.1); border-radius: 5px; margin-bottom: 15px; border: 1px solid rgba(128, 128, 128, 0.2);">
+                            <p style="font-size: 16px; margin-bottom: 0;"><strong>Sonuç:</strong> Bu müşterinin abonelik olasılığı <strong style="color: {'#00FF00' if probability >= optimal_threshold else '#FF6B6B'};">{prediction_category}</strong> ({probability:.2f})</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Simple explanation of the scale
+                        st.markdown("""
+                        <div style="text-align: center; padding: 10px; background-color: rgba(240, 242, 246, 0.1); border-radius: 5px; border: 1px solid rgba(128, 128, 128, 0.2);">
+                            <p style="font-size: 14px; margin-bottom: 0;"><strong style="color: rgba(255, 255, 255, 0.8);">Siyah çizgi:</strong> Optimal threshold (Bu değerin üzerindeki tahminler pozitif kabul edilir)</p>
+                            <p style="font-size: 14px; margin-bottom: 0;"><strong style="color: rgba(255, 255, 255, 0.8);">Beyaz çizgi:</strong> Bu müşteri için tahmin edilen olasılık değeri</p>
+                        """ + ("""
+                            <p style="font-size: 14px; margin-bottom: 0;"><strong style="color: rgba(255, 255, 0, 0.8);">Sarı çizgi:</strong> Sizin belirlediğiniz özel threshold değeri</p>
+                        """ if custom_threshold != optimal_threshold else "") + """
+                        </div>
+                        """, unsafe_allow_html=True)
                     
-                    # Key feature analysis
-                    st.subheader("Önemli Özellikler")
+                    # Key feature analysis - Enhanced and more detailed
+                    st.subheader("Tahmin Analizi: Önemli Faktörler")
+                    
+                    # Create a detailed description based on the key features
+                    prediction_explanation = ""
+                    primary_factors = []
+                    supporting_factors = []
+                    contradicting_factors = []
+                    
+                    # Duration analysis - most important feature
+                    if duration > 500:
+                        primary_factors.append(f"**Görüşme Süresi** ({duration} saniye) çok uzun olması abonelik ihtimalini belirgin şekilde artırıyor. Bu, müşterinin yüksek ilgisini gösterir.")
+                    elif duration > 300:
+                        primary_factors.append(f"**Görüşme Süresi** ({duration} saniye) ortalamanın üzerinde ve bu pozitif bir gösterge. Genellikle ilgilenen müşteriler daha uzun görüşme yaparlar.")
+                    elif duration > 180:
+                        primary_factors.append(f"**Görüşme Süresi** ({duration} saniye) ortalama civarında, abonelik olasılığı üzerinde nötr bir etkisi var.")
+                    else:
+                        primary_factors.append(f"**Görüşme Süresi** ({duration} saniye) kısa olması abonelik ihtimalini düşürüyor. Genellikle kısa görüşmeler düşük ilgiyi gösterir.")
+                    
+                    # Poutcome analysis - second most important feature
+                    if poutcome == "success":
+                        primary_factors.append(f"**Önceki Kampanya Sonucu** başarılı olması çok güçlü bir pozitif göstergedir. Önceden ürün satın alan müşteriler tekrar satın alma eğilimindedir.")
+                    elif poutcome == "failure":
+                        supporting_factors.append(f"**Önceki Kampanya Sonucu** başarısız olması negatif bir göstergedir, ancak diğer faktörlerle dengelenebilir.")
+                    else:  # nonexistent
+                        supporting_factors.append(f"**Önceki Kampanya Sonucu** mevcut olmaması (daha önce iletişime geçilmemiş), geçmiş satın alma davranışı hakkında bilgi eksikliği yaratıyor.")
+                    
+                    # Pdays analysis
+                    if pdays == -1:
+                        supporting_factors.append(f"Müşteri ile **daha önce iletişime geçilmemiş** olması, geçmiş etkileşimlerden öğrenme fırsatını azaltıyor.")
+                    elif pdays < 30:
+                        supporting_factors.append(f"Son görüşmeden **{pdays} gün** geçmiş olması nispeten yakın zamanda iletişim kurulduğunu gösteriyor, bu orta düzeyde pozitif bir etki.")
+                    else:
+                        supporting_factors.append(f"Son görüşmeden **{pdays} gün** geçmiş olması uzun bir zaman aralığı olduğunu gösteriyor.")
+                    
+                    # Previous contacts
+                    if previous == 0:
+                        supporting_factors.append("Müşteri ile **bu kampanyadan önce hiç iletişim kurulmamış** olması bir ilişki eksikliğini gösterir.")
+                    elif previous <= 3:
+                        supporting_factors.append(f"Müşteri ile **bu kampanyadan önce {previous} kez iletişim kurulmuş** olması makul bir ilişki düzeyini gösterir.")
+                    else:
+                        contradicting_factors.append(f"Müşteri ile **bu kampanyadan önce {previous} kez iletişim kurulmuş** olması yüksek sıklıkta aranma durumunu gösterir. Bu bazen çok fazla iletişimin olumsuz etkisi olabilir.")
+                    
+                    # Contact method
+                    if contact == "cellular":
+                        supporting_factors.append("**Cep telefonu** ile iletişim kurulması genellikle sabit hatta göre daha etkilidir.")
+                    else:
+                        supporting_factors.append("**Sabit hat** ile iletişim kurulması, cep telefonuna göre daha az etkili olabilir.")
+                    
+                    # Economic indicators
+                    if emp_var_rate > 0:
+                        contradicting_factors.append(f"**İstihdam değişim oranı** yüksek ({emp_var_rate:.1f}), ekonomik genişleme dönemlerinde müşteriler genellikle daha az tasarruf eğilimindedir.")
+                    else:
+                        supporting_factors.append(f"**İstihdam değişim oranı** düşük ({emp_var_rate:.1f}), ekonomik belirsizlik dönemlerinde müşteriler genellikle daha fazla tasarruf eğilimindedir.")
+                    
+                    if euribor3m > 4:
+                        supporting_factors.append(f"**Euribor 3-aylık oranı** yüksek ({euribor3m:.1f}), yüksek faiz oranları vadeli mevduat için daha cazip getiri sunabilir.")
+                    else:
+                        contradicting_factors.append(f"**Euribor 3-aylık oranı** düşük ({euribor3m:.1f}), düşük faiz oranları vadeli mevduat için daha az cazip getiri sunabilir.")
+                    
+                    # Create a comprehensive analysis based on primary, supporting and contradicting factors
+                    st.write("Aşağıda, modelin tahmin sonucunu etkileyen en önemli faktörlerin detaylı analizi bulunmaktadır:")
+                    
+                    with st.expander("Ana Faktörler (Tahmin sonucunu en çok etkileyen)", expanded=True):
+                        for factor in primary_factors:
+                            st.markdown(f"• {factor}")
+                    
+                    with st.expander("Destekleyici Faktörler", expanded=True):
+                        for factor in supporting_factors:
+                            st.markdown(f"• {factor}")
+                    
+                    with st.expander("Çelişen Faktörler", expanded=True):
+                        if contradicting_factors:
+                            for factor in contradicting_factors:
+                                st.markdown(f"• {factor}")
+                        else:
+                            st.markdown("• Belirgin bir çelişen faktör bulunmamaktadır.")
+                    
+                    # Overall prediction explanation
+                    st.subheader("Tahmin Özeti")
+                    
+                    # Create explanation based on probability range
+                    if probability > 0.7:
+                        explanation = """
+                        Model, müşterinin **yüksek olasılıkla** vadeli mevduat ürününe abone olacağını tahmin etmektedir. Bu tahmin, özellikle görüşme süresi ve geçmiş kampanya sonuçları gibi güçlü göstergelere dayanmaktadır. 
+                        
+                        Bu tür yüksek potansiyelli müşteriler için ek kampanya iletişimleri veya özel teklifler değerlendirilebilir.
+                        """
+                    elif probability > optimal_threshold:
+                        explanation = """
+                        Model, müşterinin vadeli mevduat ürününe abone olma olasılığının **threshold değerinin üzerinde** olduğunu tahmin etmektedir. Bazı olumlu faktörler görülmektedir, ancak abonelik kesin değildir.
+                        
+                        Bu müşteri segmenti için ek bilgilendirmeler ve müşteriye özel avantajlar sunulması faydalı olabilir.
+                        """
+                    elif probability > 0.3:
+                        explanation = """
+                        Model, müşterinin vadeli mevduat ürününe abone olma olasılığının **orta düzeyde** olduğunu, ancak threshold değerinin altında kaldığını tahmin etmektedir. Hem olumlu hem de olumsuz göstergeler bulunmaktadır.
+                        
+                        Bu tür müşteriler için farklı ürünler değerlendirilebilir veya daha sonra tekrar iletişime geçilebilir.
+                        """
+                    else:
+                        explanation = """
+                        Model, müşterinin vadeli mevduat ürününe abone olma olasılığının **düşük** olduğunu tahmin etmektedir. Olumsuz göstergeler ağır basmaktadır.
+                        
+                        Bu tür müşterilere kampanya kaynakları ayırmak yerine diğer müşteri segmentlerine odaklanmak daha etkili olabilir.
+                        """
+                    
+                    st.info(explanation)
+                    
+                    # Add visual comparison of this customer with typical subscribers and non-subscribers
+                    st.subheader("Müşteri Profil Karşılaştırması")
+                    st.write("Bu müşterinin özellikleri, tipik abone olan ve olmayan müşterilerle nasıl karşılaştırılıyor:")
+                    
+                    # Create comparison table
+                    comparison_data = {
+                        "Özellik": ["Görüşme Süresi", "Son İletişimden Geçen Gün", "Önceki Kampanya Sonucu", "İletişim Türü", "Euribor 3-aylık Oran"],
+                        "Bu Müşteri": [f"{duration} saniye", "Hiç" if pdays == -1 else f"{pdays} gün", poutcome, contact, f"{euribor3m:.1f}"],
+                        "Tipik Abone Olan": ["> 400 saniye", "< 60 gün veya hiç", "Success/Nonexistent", "Cellular", "> 4.0"],
+                        "Tipik Abone Olmayan": ["< 250 saniye", "Herhangi bir değer", "Failure/Nonexistent", "Herhangi biri", "Herhangi bir değer"]
+                    }
+                    
+                    comparison_df = pd.DataFrame(comparison_data)
+                    
+                    # Style the dataframe with better formatting
+                    def highlight_cells(val):
+                        if val == comparison_data["Bu Müşteri"][0]:  # Duration comparison
+                            if duration > 400:
+                                return 'background-color: #d4f1d4'  # Light green
+                            elif duration < 250:
+                                return 'background-color: #ffcccc'  # Light red
+                        if val == comparison_data["Bu Müşteri"][1]:  # pdays comparison
+                            if pdays != -1 and pdays < 60:
+                                return 'background-color: #d4f1d4'
+                        if val == comparison_data["Bu Müşteri"][2]:  # poutcome comparison
+                            if poutcome == "success":
+                                return 'background-color: #d4f1d4'
+                            elif poutcome == "failure":
+                                return 'background-color: #ffcccc'
+                        if val == comparison_data["Bu Müşteri"][3]:  # contact comparison
+                            if contact == "cellular":
+                                return 'background-color: #d4f1d4'
+                        if val == comparison_data["Bu Müşteri"][4]:  # euribor comparison
+                            if euribor3m > 4.0:
+                                return 'background-color: #d4f1d4'
+                        return ''
+                    
+                    styled_df = comparison_df.style.applymap(highlight_cells)
+                    st.dataframe(styled_df, hide_index=True)
+                    st.caption("Yeşil: Abone olmaya pozitif eğilim, Kırmızı: Abone olmaya negatif eğilim")
+                    
+                    # Most distinctive features for this prediction
+                    st.subheader("Önemli Faktörler Analizi")
                     st.write("Aşağıdaki özellikler tahminimizi en çok etkileyen faktörlerdir:")
                     
-                    # Create a list of key features and their values
+                    # Create a list of key features with detailed impact analysis
                     key_features = [
-                        {"feature": "Görüşme Süresi", "value": f"{duration} saniye", "importance": 0.95 if duration > 300 else 0.5},
-                        {"feature": "Son Görüşmeden Geçen Gün Sayısı", "value": "Daha önce aranmamış" if pdays == -1 else f"{pdays} gün", "importance": 0.40},
-                        {"feature": "Daha Önceki Kampanya Sonucu", "value": poutcome, "importance": 0.85 if poutcome == "success" else 0.30},
-                        {"feature": "İşlem Sayısı", "value": f"{previous}", "importance": 0.60 if previous > 0 else 0.15},
-                        {"feature": "İletişim Türü", "value": contact, "importance": 0.35 if contact == "cellular" else 0.20}
+                        {"feature": "Görüşme Süresi", "value": f"{duration} saniye", 
+                         "importance": 0.95 if duration > 300 else 0.5,
+                         "impact": "Yüksek Pozitif" if duration > 500 else "Pozitif" if duration > 300 else "Nötr" if duration > 180 else "Negatif",
+                         "detail": "Görüşme süresi, müşterinin ilgi düzeyinin en güçlü göstergesidir. 300 saniyeden uzun görüşmeler genellikle abone olma olasılığını artırır."},
+                        
+                        {"feature": "Son Görüşmeden Geçen Gün Sayısı", 
+                         "value": "Daha önce aranmamış" if pdays == -1 else f"{pdays} gün", 
+                         "importance": 0.40,
+                         "impact": "Hafif Negatif" if pdays == -1 else "Pozitif" if pdays < 30 else "Hafif Negatif",
+                         "detail": "Daha önce hiç aranmamış müşteriler (-1) veya çok uzun süre önce aranmış müşteriler için belirsizlik vardır, yakın zamanda aranmış müşteriler daha olumlu sonuç verir."},
+                        
+                        {"feature": "Daha Önceki Kampanya Sonucu", 
+                         "value": poutcome, 
+                         "importance": 0.85 if poutcome == "success" else 0.30,
+                         "impact": "Yüksek Pozitif" if poutcome == "success" else "Negatif" if poutcome == "failure" else "Nötr",
+                         "detail": "Önceki kampanyada başarılı sonuç alınmış müşteriler tekrar satın alma olasılığı çok yüksektir. Başarısız sonuçlar olumsuz etki yaratır."},
+                        
+                        {"feature": "İşlem Sayısı", 
+                         "value": f"{previous}", 
+                         "importance": 0.60 if previous > 0 and previous <= 3 else 0.15,
+                         "impact": "Pozitif" if previous > 0 and previous <= 3 else "Negatif" if previous > 3 else "Hafif Negatif",
+                         "detail": "1-3 arası önceki iletişim sayısı ideal, daha fazlası müşteri yorgunluğu ve rahatsızlığı oluşturabilir."},
+                        
+                        {"feature": "İletişim Türü", 
+                         "value": contact, 
+                         "importance": 0.35 if contact == "cellular" else 0.20,
+                         "impact": "Pozitif" if contact == "cellular" else "Hafif Negatif",
+                         "detail": "Cep telefonu ile iletişim, sabit hatta göre daha etkilidir çünkü müşteriye doğrudan ulaşma olasılığı daha yüksektir."},
+                         
+                        {"feature": "Euribor 3 Aylık Oran", 
+                         "value": f"{euribor3m:.1f}", 
+                         "importance": 0.45 if euribor3m > 4.0 else 0.25,
+                         "impact": "Pozitif" if euribor3m > 4.0 else "Nötr",
+                         "detail": "Yüksek Euribor oranları, mevduat faiz oranlarını artırarak vadeli mevduat ürünlerini daha cazip hale getirir."}
                     ]
                     
                     # Sort by importance
                     key_features.sort(key=lambda x: x["importance"], reverse=True)
                     
-                    # Display in a nice table format
-                    feature_df = pd.DataFrame(key_features)
+                    # Display as a table with expandable details
+                    for feature in key_features:
+                        with st.expander(f"{feature['feature']}: {feature['value']} - Etki: {feature['impact']}"):
+                            st.write(f"**Önem Derecesi**: {int(feature['importance']*100)}%")
+                            st.write(f"**Analiz**: {feature['detail']}")
                     
-                    # Add a color column based on importance
-                    def get_color(importance):
-                        if importance > 0.7:
-                            return "rgba(0, 128, 0, 0.2)"  # Green for high importance
-                        elif importance > 0.4:
-                            return "rgba(255, 165, 0, 0.2)"  # Orange for medium importance
-                        else:
-                            return "rgba(211, 211, 211, 0.2)"  # Light gray for low importance
+                    # Add a correlation explanation for multiple factors
+                    st.subheader("Faktörler Arası Etkileşim")
                     
-                    feature_df["color"] = feature_df["importance"].apply(get_color)
+                    # Generate a tailored interaction explanation
+                    interaction_explanation = ""
                     
-                    # Convert to HTML with colored rows
-                    html_table = "<table style='width:100%; border-collapse:collapse;'>"
-                    html_table += "<tr><th>Özellik</th><th>Değer</th><th>Önem</th></tr>"
+                    # Check for specific combinations that have stronger effects together
+                    if duration > 400 and poutcome == "success":
+                        interaction_explanation += "**Güçlü Pozitif Kombinasyon**: Uzun görüşme süresi VE önceki kampanyada başarı birlikte çok güçlü bir pozitif göstergedir. Bu iki faktörün birleşimi, ayrı ayrı etkilerinden daha büyük bir etki yaratır.\n\n"
                     
-                    for _, row in feature_df.iterrows():
-                        html_table += f"<tr style='background-color:{row['color']}'>"
-                        html_table += f"<td>{row['feature']}</td>"
-                        html_table += f"<td>{row['value']}</td>"
-                        html_table += f"<td>{int(row['importance']*100)}%</td>"
-                        html_table += "</tr>"
+                    if duration < 200 and poutcome == "failure":
+                        interaction_explanation += "**Güçlü Negatif Kombinasyon**: Kısa görüşme süresi VE önceki kampanyada başarısızlık birlikte çok güçlü bir negatif göstergedir. Böyle bir durumda abonelik olasılığı çok düşüktür.\n\n"
                     
-                    html_table += "</table>"
+                    if pdays == -1 and previous == 0:
+                        interaction_explanation += "**Belirsiz Kombinasyon**: Müşteri ile daha önce hiç iletişim kurulmamış olması (pdays=-1 ve previous=0) yeni bir ilişki başlangıcını gösterir. Bu durumda demografik ve güncel ekonomik faktörler daha belirleyici olur.\n\n"
                     
-                    st.markdown(html_table, unsafe_allow_html=True)
+                    if duration > 300 and contact == "cellular" and euribor3m > 4.0:
+                        interaction_explanation += "**Fırsat Kombinasyonu**: Uzun görüşme + cep telefonu iletişimi + yüksek Euribor oranı, özellikle uygun bir fırsat penceresi yaratır. Müşteri ilgili ve ekonomik koşullar elverişlidir.\n\n"
                     
-                    # Provide an explanation of the prediction
-                    st.subheader("Tahmin Açıklaması")
+                    # If no specific combinations were found, provide a general explanation
+                    if not interaction_explanation:
+                        interaction_explanation = """
+                        Bu müşteri profilinde, faktörler arasında belirgin bir etkileşim görülmemektedir. 
+                        
+                        Tahmin, her bir faktörün bağımsız katkısına dayanmaktadır, faktörler arasında özel bir sinerji veya çatışma tespit edilmemiştir.
+                        """
                     
-                    if duration > 300:
-                        explanation = "Görüşme süresi tahminin en önemli faktörüdür. **Uzun görüşme süresi** (> 300 saniye) müşterinin ilgisini gösterir."
+                    st.info(interaction_explanation)
+                    
+                    # Add recommendations section based on prediction
+                    st.subheader("Pazarlama Tavsiyeleri")
+                    
+                    if probability > 0.7:
+                        st.success("""
+                        **Yüksek Potansiyelli Müşteri**
+                        
+                        Önerilen Yaklaşım:
+                        - Müşteriye özel tekliflerle doğrudan satış yaklaşımı uygulayın
+                        - Daha yüksek getirili premium vadeli mevduat ürünlerini önerin
+                        - İlişkiyi derinleştirmek için ek bankacılık ürünleri sunun
+                        - Yüksek öncelikli olarak işaretleyin ve kısa sürede tekrar iletişime geçin
+                        """)
+                    elif probability > optimal_threshold:
+                        st.info("""
+                        **Orta-Yüksek Potansiyelli Müşteri**
+                        
+                        Önerilen Yaklaşım:
+                        - Standart vadeli mevduat avantajlarını vurgulayın
+                        - Daha detaylı ürün bilgileri ve karşılaştırmalar sunun
+                        - İlgilendiği noktalarda daha fazla açıklama yapın
+                        - Karar verme sürecini kolaylaştıracak argümanlar sunun
+                        """)
+                    elif probability > 0.3:
+                        st.warning("""
+                        **Düşük-Orta Potansiyelli Müşteri**
+                        
+                        Önerilen Yaklaşım:
+                        - İlgi alanlarını daha iyi anlamak için ek sorular sorun
+                        - Farklı ve daha uygun olabilecek ürünleri değerlendirin
+                        - Mevduat faiz oranlarında bir artış olduğunda tekrar iletişime geçin
+                        - E-posta ile bilgilendirme materyalleri gönderin
+                        """)
                     else:
-                        explanation = "Görüşme süresi tahminin en önemli faktörüdür. **Kısa görüşme süresi** müşterinin düşük ilgisini göstermektedir."
-                    
-                    if poutcome == "success":
-                        explanation += " Önceki kampanyada **başarılı sonuç** önemli bir pozitif etkendir."
-                    elif poutcome == "failure":
-                        explanation += " Önceki kampanyada **başarısız sonuç** negatif etki yaratabilir."
-                    
-                    if pdays == -1:
-                        explanation += " Müşteri **daha önce aranmamış** olduğundan geçmiş etkileşim faktörü değerlendirilemiyor."
-                    elif pdays < 30:
-                        explanation += " Son görüşmeden bu yana **kısa süre geçmiş** olması etkileşim zamanlamasının uygun olduğunu gösteriyor."
-                    else:
-                        explanation += " Son görüşmeden bu yana **uzun süre geçmiş** olması müşterinin ilgi düzeyini etkileyebilir."
-                    
-                    st.write(explanation)
+                        st.error("""
+                        **Düşük Potansiyelli Müşteri**
+                        
+                        Önerilen Yaklaşım:
+                        - Şu an için başka bankacılık ürünlerine odaklanın
+                        - Kısa vadede tekrar arama listesine dahil etmeyin
+                        - Ekonomik koşullar değiştiğinde tekrar değerlendirin
+                        - Kampanya kaynaklarını daha yüksek potansiyelli müşterilere ayırın
+                        """)
                     
                 except Exception as e:
                     st.error(f"Prediction error: {str(e)}")
