@@ -628,22 +628,22 @@ def main():
                         st.write(f"**Optimal Threshold**: {optimal_threshold:.2f}")
                         
                         # Add threshold explanation and adjustment
-                        with st.expander("Threshold (Eşik Değeri) Hakkında", expanded=False):
+                        with st.expander("About Threshold", expanded=False):
                             st.markdown("""
-                            **Threshold (Eşik Değeri) Nedir?**
+                            **What is a Threshold?**
                             
-                            Threshold, model tahminlerinin "Evet" veya "Hayır" olarak sınıflandırılması için kullanılan kesim noktasıdır.
+                            Threshold is the cutoff point used to classify model predictions as "Yes" or "No".
                             
-                            **Nasıl Hesaplanır?**
-                            1. **F1-Score Optimizasyonu**: 0.3 ile 0.9 arasındaki threshold değerleri test edilir
-                            2. **Minimum Değer Uygulaması**: Yanlış pozitifleri azaltmak için minimum 0.5 threshold uygulanır
-                            3. **Precision Odaklı Yaklaşım**: Dengesiz veri setimizde (89% hayır vs 11% evet) precision metriği önceliklendirilir
+                            **How is it Calculated?**
+                            1. **F1-Score Optimization**: Threshold values between 0.3 and 0.9 are tested
+                            2. **Minimum Value Application**: A minimum threshold of 0.5 is applied to reduce false positives
+                            3. **Precision-Focused Approach**: In our imbalanced dataset (89% no vs 11% yes), the precision metric is prioritized
                             
-                            **Threshold Değiştirmenin Etkileri**:
-                            - **Düşük Threshold (< 0.5)**: Daha fazla müşteri pozitif tahmin edilir, yüksek recall fakat düşük precision
-                            - **Yüksek Threshold (> 0.5)**: Daha az müşteri pozitif tahmin edilir, düşük recall fakat yüksek precision
+                            **Effects of Changing the Threshold**:
+                            - **Low Threshold (< 0.5)**: More customers are predicted as positive, high recall but low precision
+                            - **High Threshold (> 0.5)**: Fewer customers are predicted as positive, low recall but high precision
                             
-                            **Not**: Veri setinde pozitif örneklerin az olması (sadece %11), tahmin olasılıklarının genellikle düşük çıkmasının ana sebebidir.
+                            **Note**: The low number of positive examples in the dataset (only 11%) is the main reason why prediction probabilities tend to be generally low.
                             """)
                         
                         # Add threshold adjustment slider
@@ -1408,83 +1408,83 @@ def main():
     elif page == "Project Overview":
         st.title("Bank Marketing Prediction Project")
         
-        # Yeni başlık sayfası
+        # New title page
         col1, col2 = st.columns([2, 1])
         
         with col1:
             st.markdown("""
-            ## Banka Mevduat Aboneliği Tahmin Modeli
+            ## Bank Deposit Subscription Prediction Model
             
-            Bu proje, müşterilerin vadeli mevduat aboneliği yapma olasılığını tahmin eden 
-            bir makine öğrenmesi çözümü sunmaktadır. Projemiz, özellikle dengesiz veri 
-            setlerinde çalışan yüksek performanslı bir tahmin sistemi geliştirmeye odaklanmıştır.
+            This project provides a machine learning solution to predict customer term deposit 
+            subscriptions. Our project focuses on developing a high-performance prediction system 
+            that works effectively with imbalanced datasets.
             """)
         
         with col2:
-            # Basit bir görsel
+            # Simple visualization
             fig, ax = plt.subplots(figsize=(4, 4))
             
-            # Pasta grafiği - sınıf dağılımı
+            # Pie chart - class distribution
             ax.pie([89, 11], labels=['No', 'Yes'], 
                   autopct='%1.1f%%', startangle=90, 
                   colors=['#ff9999', '#66b3ff'])
             
-            ax.set_title('Hedef Değişken Dağılımı')
+            ax.set_title('Target Variable Distribution')
             st.pyplot(fig)
         
-        # Ana bölümlerin özeti
+        # Summary of main components
         st.markdown("""
-        ## Proje Bileşenleri
+        ## Project Components
         """)
         
-        tabs = st.tabs(["Veri", "Metodoloji", "Sonuçlar", "Kullanım"])
+        tabs = st.tabs(["Data", "Methodology", "Results", "Usage"])
         
         with tabs[0]:
             st.markdown("""
-            ### Veri Kaynağı
+            ### Data Source
             
-            - **Kaynak**: Portekiz bankacılık kurumu pazarlama kampanyası verileri
-            - **Boyut**: 4,119 müşteri kaydı × 21 özellik
-            - **Hedef Değişken**: Vadeli mevduat aboneliği (evet/hayır)
-            - **Sınıf Dengesizliği**: %89 hayır vs %11 evet (8:1 oranı)
+            - **Source**: Portuguese banking institution marketing campaign data
+            - **Size**: 4,119 customer records × 21 features
+            - **Target Variable**: Term deposit subscription (yes/no)
+            - **Class Imbalance**: 89% no vs 11% yes (8:1 ratio)
             
-            **Özellik Kategorileri**:
-            - Demografik: Yaş, meslek, medeni durum, eğitim
-            - Bankacılık: Kredi durumu, konut kredisi, bireysel kredi
-            - Kampanya: Görüşme tipi, ay, gün, süre, önceki kampanya sonuçları
-            - Ekonomik: İstihdam değişim oranı, tüketici fiyat endeksi, Euribor oranı
+            **Feature Categories**:
+            - Demographic: Age, job, marital status, education
+            - Banking: Credit default, housing loan, personal loan
+            - Campaign: Contact type, month, day, duration, previous campaign results
+            - Economic: Employment variation rate, consumer price index, Euribor rate
             """)
         
         with tabs[1]:
             st.markdown("""
-            ### Metodoloji
+            ### Methodology
             
-            **Veri İşleme Pipeline**:
+            **Data Processing Pipeline**:
             
-            1. **Veri Temizleme ve Önişleme**
-               - Eksik değer tamamlama
-               - Kategorik değişkenlerin kodlanması
-               - Özel normalizasyon teknikleri
+            1. **Data Cleaning and Preprocessing**
+               - Missing value imputation
+               - Categorical variable encoding
+               - Custom normalization techniques
             
-            2. **Özellik Mühendisliği**
-               - Özellik seçimi
-               - Özellik ölçeklendirme
+            2. **Feature Engineering**
+               - Feature selection
+               - Feature scaling
             
-            3. **Model Geliştirme**
-               - Stacking Ensemble yaklaşımı
+            3. **Model Development**
+               - Stacking Ensemble approach
                - Multiple base models + meta-learner
-               - Hyperparameter optimizasyonu
+               - Hyperparameter optimization
             
-            4. **Teknik Yenilikler**
-               - Olasılık kalibrasyonu (sigmoid-based)
-               - Precision odaklı threshold optimizasyonu
-               - Duration etkisi dengeleme
+            4. **Technical Innovations**
+               - Probability calibration (sigmoid-based)
+               - Precision-focused threshold optimization
+               - Duration effect balancing
             """)
             
-            # Basit pipeline görseli
+            # Simple pipeline visualization
             fig, ax = plt.subplots(figsize=(10, 3))
             ax.axis('off')
-            pipeline_stages = ["Veri İşleme", "Özellik Mühendisliği", "Model Eğitimi", "Optimizasyon", "Deployment"]
+            pipeline_stages = ["Data Processing", "Feature Engineering", "Model Training", "Optimization", "Deployment"]
             x_positions = np.linspace(0.1, 0.9, len(pipeline_stages))
             
             # Add boxes for each stage
@@ -1503,31 +1503,31 @@ def main():
         
         with tabs[2]:
             st.markdown("""
-            ### Temel Sonuçlar
+            ### Key Results
             
-            **Model Performansı**:
+            **Model Performance**:
             - **Accuracy**: 90.37%
             - **Precision**: 58.00%
             - **Recall**: 42.96%
             - **F1 Score**: 49.36%
             - **ROC AUC**: 92.67%
             
-            **Önemli Çıkarımlar**:
-            1. **Stacking Ensemble** modeli en iyi genel performansı sağlamaktadır
-            2. **Görüşme süresi (duration)** en güçlü tahmin faktörüdür
-            3. **Ekonomik göstergeler** müşteri davranışında önemli rol oynamaktadır
-            4. **Threshold optimizasyonu** model performansını önemli ölçüde artırmaktadır
+            **Important Insights**:
+            1. **Stacking Ensemble** model provides the best overall performance
+            2. **Call duration** is the strongest predictive factor
+            3. **Economic indicators** play an important role in customer behavior
+            4. **Threshold optimization** significantly improves model performance
             """)
             
-            # Basit performans görseli
+            # Simple performance visualization
             fig, ax = plt.subplots(figsize=(6, 4))
             metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC']
             values = [0.904, 0.58, 0.43, 0.494, 0.927]
             
             bars = ax.bar(metrics, values, color=plt.cm.viridis(np.linspace(0.2, 0.8, len(metrics))))
             ax.set_ylim(0, 1.0)
-            ax.set_title('Model Performans Metrikleri')
-            ax.set_ylabel('Skor')
+            ax.set_title('Model Performance Metrics')
+            ax.set_ylabel('Score')
             
             # Add values on bars
             for bar in bars:
@@ -1539,38 +1539,38 @@ def main():
         
         with tabs[3]:
             st.markdown("""
-            ### Pratik Kullanım
+            ### Practical Usage
             
-            **Uygulama Özellikleri**:
-            - **Canlı Tahmin**: Yeni müşteri verileriyle gerçek zamanlı tahmin
-            - **Esnek Model Seçimi**: Farklı model seçenekleri arasında geçiş yapabilme
-            - **İnteraktif Parametre Ayarları**: Kullanıcı tarafından özelleştirilebilir parametreler
-            - **Açıklanabilir Sonuçlar**: Tahminlerin anlaşılabilir şekilde sunulması
+            **Application Features**:
+            - **Live Prediction**: Real-time prediction with new customer data
+            - **Flexible Model Selection**: Ability to switch between different model options
+            - **Interactive Parameter Settings**: User-customizable parameters
+            - **Explainable Results**: Presenting predictions in an understandable way
             
-            **Pratik Uygulamalar**:
-            - Yüksek potansiyelli müşterileri belirleme
-            - Model performansını farklı veri noktaları için değerlendirme
-            - Kampanya stratejilerini veri odaklı şekillendirme
+            **Practical Applications**:
+            - Identifying high-potential customers
+            - Evaluating model performance for different data points
+            - Data-driven shaping of campaign strategies
             """)
         
         st.markdown("""
-        ## Nasıl Kullanılır?
+        ## How to Use?
         
-        **Temel Kullanım Adımları**:
+        **Basic Usage Steps**:
         
-        1. Sol menüden **"Predict"** sayfasını seçin
-        2. Müşteri demografik bilgilerini ve kampanya verilerini girin
-        3. Tahmin için bir model seçin
-        4. "Predict Subscription Likelihood" butonuna tıklayın
-        5. Tahmin sonuçlarını inceleyin
+        1. Select the **"Predict"** page from the left menu
+        2. Enter customer demographic information and campaign data
+        3. Choose a model for prediction
+        4. Click the "Predict Subscription Likelihood" button
+        5. Review the prediction results
         
-        Daha detaylı analiz için **"Model Insights"** ve **"Pipeline"** sayfalarını inceleyebilirsiniz.
+        For more detailed analysis, you can explore the **"Model Insights"** and **"Pipeline"** pages.
         """)
         
         st.info("""
-        **Not**: Bu proje, gerçek bir banka pazarlama kampanyası veri seti üzerinde geliştirilmiş
-        bir makine öğrenmesi sisteminin demonstrasyonudur. Projede kullanılan yöntemler ve teknikler 
-        diğer sektörlerdeki tahmin problemlerine de uyarlanabilir.
+        **Note**: This project is a demonstration of a machine learning system developed on a real 
+        bank marketing campaign dataset. The methods and techniques used in the project can also be 
+        adapted to prediction problems in other sectors.
         """)
     
     elif page == "Research Report":
@@ -1970,79 +1970,79 @@ def main():
         
         with st.expander("1. Data Ingestion", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Veri Kaynağı**: Portekiz bankacılık kurumu pazarlama kampanyası veri seti (UCI Machine Learning Repository'den alınmıştır)
-            - **Format**: Yapılandırılmış tabular veri (4,119 örnek × 21 özellik)
-            - **Target Distribution**: Ciddi sınıf dengesizliği (Class Imbalance) - %89 negatif (no), %11 pozitif (yes)
+            **Technical Details:**
+            - **Data Source**: Portuguese banking institution marketing campaign dataset (obtained from UCI Machine Learning Repository)
+            - **Format**: Structured tabular data (4,119 samples × 21 features)
+            - **Target Distribution**: Severe class imbalance - 89% negative (no), 11% positive (yes)
             
-            **Matematiksel Gösterim:**
-            - Veri matrisi: $X \in \mathbb{R}^{n \\times p}$ burada $n=4,119$ ve $p=21$
-            - Hedef vektör: $y \in \\{0,1\\}^n$ burada 0='no', 1='yes'
+            **Mathematical Representation:**
+            - Data matrix: $X \in \mathbb{R}^{n \\times p}$ where $n=4,119$ and $p=21$
+            - Target vector: $y \in \\{0,1\\}^n$ where 0='no', 1='yes'
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             import pandas as pd
             
-            # Tab-separated dosya formatından veri yükleme
+            # Loading data from tab-separated file format
             raw_data = pd.read_csv('bank-additional.xls', sep='\\t')
             
             # Target encoding ('no'/'yes' → 0/1)
             raw_data['y'] = raw_data['y'].map({'no': 0, 'yes': 1})
             
-            # Training ve test set ayrımı (stratified sampling)
+            # Training and test set split (stratified sampling)
             from sklearn.model_selection import train_test_split
             X_train, X_test, y_train, y_test = train_test_split(
                 raw_data.drop('y', axis=1), 
                 raw_data['y'],
                 test_size=0.2, 
                 random_state=42,
-                stratify=raw_data['y']  # Sınıf dağılımını korumak için stratified split
+                stratify=raw_data['y']  # Stratified split to maintain class distribution
             )
             ```
             """)
             
         with st.expander("2. Data Preprocessing", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Missing Value Treatment**: Sayısal değişkenler için medyan imputasyonu ($\\tilde{x}_j$)
-            - **Categorical Encoding**: Nominal değişkenler için one-hot encoding transformasyonu
-            - **Feature Scaling**: Sayısal değişkenlere özel min-max normalizasyonu
+            **Technical Details:**
+            - **Missing Value Treatment**: Median imputation for numerical variables ($\\tilde{x}_j$)
+            - **Categorical Encoding**: One-hot encoding transformation for nominal variables
+            - **Feature Scaling**: Custom min-max normalization for numerical variables
             
-            **Matematiksel Gösterim:**
-            - **Medyan İmputasyonu**: $x_{i,j} = \\begin{cases} 
+            **Mathematical Representation:**
+            - **Median Imputation**: $x_{i,j} = \\begin{cases} 
                                      x_{i,j}, & \\text{if } x_{i,j} \\text{ is not missing} \\\\
                                      \\tilde{x}_j, & \\text{if } x_{i,j} \\text{ is missing}
                                    \\end{cases}$
             
-            - **One-hot Encoding**: Kategorik değişken $x_j$ için $k$ kategorisi varsa, $k$ binary değişkene dönüştürme
-              $x_j \\rightarrow [x_{j,1}, x_{j,2}, ..., x_{j,k}]$ burada $x_{j,l} \\in \\{0,1\\}$
+            - **One-hot Encoding**: For categorical variable $x_j$ with $k$ categories, transform into $k$ binary variables
+              $x_j \\rightarrow [x_{j,1}, x_{j,2}, ..., x_{j,k}]$ where $x_{j,l} \\in \\{0,1\\}$
             
-            - **Domain-aware Min-Max Normalizasyon**: Her sayısal değişkene özel ölçeklendirme
+            - **Domain-aware Min-Max Normalization**: Custom scaling for each numerical variable
               $x'_{i,j} = \\frac{x_{i,j} - min_j}{max_j - min_j}$
               
-              Özellikle duration değişkeni için: $x'_{i,\\text{duration}} = min(1.0, \\frac{x_{i,\\text{duration}}}{1000})$
+              Especially for duration variable: $x'_{i,\\text{duration}} = min(1.0, \\frac{x_{i,\\text{duration}}}{1000})$
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             from sklearn.compose import ColumnTransformer
             from sklearn.pipeline import Pipeline
             from sklearn.impute import SimpleImputer
             from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
             
-            # Kategorik ve sayısal değişkenleri ayırt etme
+            # Distinguishing categorical and numerical variables
             categorical_cols = ['job', 'marital', 'education', 'default', 'housing', 
                               'loan', 'contact', 'month', 'day_of_week', 'poutcome']
             numerical_cols = ['age', 'duration', 'campaign', 'pdays', 'previous', 
                              'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 
                              'euribor3m', 'nr.employed']
             
-            # Sayısal değişkenler için preprocessing pipeline
+            # Preprocessing pipeline for numerical variables
             numerical_transformer = Pipeline(steps=[
                 ('imputer', SimpleImputer(strategy='median')),
                 ('scaler', MinMaxScaler())
             ])
             
-            # Kategorik değişkenler için preprocessing pipeline
+            # Preprocessing pipeline for categorical variables
             categorical_transformer = Pipeline(steps=[
                 ('imputer', SimpleImputer(strategy='most_frequent')),
                 ('onehot', OneHotEncoder(drop='first', sparse=False))
@@ -2055,7 +2055,7 @@ def main():
                     ('cat', categorical_transformer, categorical_cols)
                 ])
             
-            # Özel normalizasyon fonksiyonu (duration için)
+            # Custom normalization function (for duration)
             def custom_normalize_duration(X):
                 X_transformed = X.copy()
                 X_transformed[:, duration_idx] = np.minimum(1.0, X[:, duration_idx] / 1000.0)
@@ -2065,19 +2065,19 @@ def main():
             
         with st.expander("3. Feature Engineering", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Feature Selection Method**: Permutation Importance ve Tree-based feature importance 
-            - **Algoritma**: Random Forest feature importance + permütasyon test
-            - **Çalışma Prensibi**: Random Forest eğitildikten sonra feature değerleri rasgele permüte edilerek model performansındaki düşüş ölçülür
+            **Technical Details:**
+            - **Feature Selection Method**: Permutation Importance and Tree-based feature importance 
+            - **Algorithm**: Random Forest feature importance + permutation test
+            - **Working Principle**: After training the Random Forest, feature values are randomly permuted to measure the decrease in model performance
             
-            **Matematiksel Gösterim:**
-            - Özellik önem metriği: $I(x_j) = \\frac{1}{K} \\sum_{k=1}^{K} [L(\\hat{y}, y) - L(\\hat{y}_{j,\\pi}, y)]$
-            - Burada:
-              - $L(\\hat{y}, y)$: Orijinal tahminlerin kayıp fonksiyonu
-              - $L(\\hat{y}_{j,\\pi}, y)$: $j$ özelliği permüte edildikten sonraki tahminlerin kayıp fonksiyonu
-              - $K$: Permütasyon tekrar sayısı
+            **Mathematical Representation:**
+            - Feature importance metric: $I(x_j) = \\frac{1}{K} \\sum_{k=1}^{K} [L(\\hat{y}, y) - L(\\hat{y}_{j,\\pi}, y)]$
+            - Where:
+              - $L(\\hat{y}, y)$: Loss function of original predictions
+              - $L(\\hat{y}_{j,\\pi}, y)$: Loss function of predictions after permuting feature $j$
+              - $K$: Number of permutation repetitions
             
-            - Final özellik skorları: 
+            - Final feature scores: 
               1. duration: 0.321
               2. euribor3m: 0.178
               3. nr.employed: 0.117
@@ -2085,54 +2085,54 @@ def main():
               5. pdays: 0.083
               6. previous: 0.067
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             from sklearn.ensemble import RandomForestClassifier
             from sklearn.inspection import permutation_importance
             
-            # Feature importance için model oluşturma
+            # Create model for feature importance
             rf = RandomForestClassifier(n_estimators=100, random_state=42)
             rf.fit(X_train_preprocessed, y_train)
             
             # Built-in feature importance
             importances = rf.feature_importances_
             
-            # Permutation importance (daha güvenilir)
+            # Permutation importance (more reliable)
             perm_importance = permutation_importance(
                 rf, X_val_preprocessed, y_val,
                 n_repeats=10,
                 random_state=42
             )
             
-            # Özellik seçimi - en önemli 10 özelliği alma
+            # Feature selection - taking top 10 features
             sorted_idx = perm_importance.importances_mean.argsort()[::-1]
             top_n_features = sorted_idx[:10]
             selected_features = [feature_names[i] for i in top_n_features]
             
-            # Modelleme için seçilmiş feature'ları kullanma
+            # Using selected features for modeling
             X_selected = X_preprocessed[:, top_n_features]
             ```
             """)
             
         with st.expander("4. Model Training", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
+            **Technical Details:**
             - **Base Models**: Logistic Regression, Random Forest, XGBoost, SVM, Decision Tree
             - **Meta-learner Model**: L2-regularized Logistic Regression
-            - **Training Strategy**: 5-fold cross-validation ile hyperparameter tuning
+            - **Training Strategy**: Hyperparameter tuning with 5-fold cross-validation
             
-            **Matematiksel Gösterim:**
-            - **Stacking Ensemble Formülasyonu**:
-              1. $\\boldsymbol{M} = \\{M_1, M_2, ..., M_K\\}$ - Base model kümesi
-              2. Her model $P_i(y=1|\\mathbf{x})$ olasılık değeri üretir
-              3. Meta-learner girdisi: $\\mathbf{z} = [P_1(y=1|\\mathbf{x}), P_2(y=1|\\mathbf{x}), ..., P_K(y=1|\\mathbf{x})]$
+            **Mathematical Representation:**
+            - **Stacking Ensemble Formulation**:
+              1. $\\boldsymbol{M} = \\{M_1, M_2, ..., M_K\\}$ - Set of base models
+              2. Each model produces a probability value $P_i(y=1|\\mathbf{x})$
+              3. Meta-learner input: $\\mathbf{z} = [P_1(y=1|\\mathbf{x}), P_2(y=1|\\mathbf{x}), ..., P_K(y=1|\\mathbf{x})]$
               4. Meta-learner: $P(y=1|\\mathbf{z}) = \\sigma(\\mathbf{w}^T \\mathbf{z} + b)$
-              5. $\\sigma(t) = \\frac{1}{1+e^{-t}}$ (sigmoid fonksiyonu)
+              5. $\\sigma(t) = \\frac{1}{1+e^{-t}}$ (sigmoid function)
             
-            - **Regularizasyon**: L2 penalty ile aşırı uyumu (overfitting) engelleme
+            - **Regularization**: Preventing overfitting with L2 penalty
               $\\min_{\\mathbf{w},b} \\left[ -\\sum_{i=1}^N y_i \\log P(y_i=1|\\mathbf{z}_i) + (1-y_i) \\log (1-P(y_i=1|\\mathbf{z}_i)) + \\lambda ||\\mathbf{w}||_2^2 \\right]$
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             from sklearn.linear_model import LogisticRegression
             from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -2141,7 +2141,7 @@ def main():
             import xgboost as xgb
             from sklearn.ensemble import StackingClassifier
             
-            # Base modelleri tanımlama
+            # Define base models
             base_models = [
                 ('logistic', LogisticRegression(random_state=42, max_iter=1000, C=0.1)),
                 ('rf', RandomForestClassifier(n_estimators=100, random_state=42, max_depth=10)),
@@ -2161,19 +2161,19 @@ def main():
                 stack_method='predict_proba'
             )
             
-            # Eğitim
+            # Training
             stacking_model.fit(X_train_selected, y_train)
             ```
             """)
             
         with st.expander("5. Model Evaluation", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Primary Metrics**: ROC AUC, F1-score (makro ve mikro ortalama)
-            - **Evaluation Strategy**: Stratified 5-fold cross-validation ve bağımsız test seti
-            - **İmbalance Handling**: Precision ve Recall arasında dengeleme
+            **Technical Details:**
+            - **Primary Metrics**: ROC AUC, F1-score (macro and micro average)
+            - **Evaluation Strategy**: Stratified 5-fold cross-validation and independent test set
+            - **Imbalance Handling**: Balancing between Precision and Recall
             
-            **Matematiksel Gösterim:**
+            **Mathematical Representation:**
             - **Confusion Matrix**:
               $CM = \\begin{bmatrix} TN & FP \\\\ FN & TP \\end{bmatrix}$
             
@@ -2187,14 +2187,14 @@ def main():
               - $TPR = \\frac{TP}{TP+FN}$ (True Positive Rate)
               - $FPR = \\frac{FP}{FP+TN}$ (False Positive Rate)
             
-            - **Final Model Metrikleri**:
+            - **Final Model Metrics**:
               - Accuracy: 90.37%
               - Precision: 58.00%
               - Recall: 42.96%
               - F1 Score: 49.36%
               - ROC AUC: 92.67%
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
             from sklearn.metrics import confusion_matrix, roc_curve, precision_recall_curve
@@ -2230,13 +2230,13 @@ def main():
             
         with st.expander("6. Threshold Optimization", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Objective Function**: $F_1$ skoru maksimizasyonu
-            - **Constraint**: Minimum threshold değeri 0.5 (false positive kontrolü için)
-            - **Search Method**: Grid search üzerinden threshold değerlerinin taranması
+            **Technical Details:**
+            - **Objective Function**: Maximization of $F_1$ score
+            - **Constraint**: Minimum threshold value of 0.5 (for false positive control)
+            - **Search Method**: Scanning threshold values through grid search
             
-            **Matematiksel Gösterim:**
-            - **Threshold Optimizasyon Problemi**:
+            **Mathematical Representation:**
+            - **Threshold Optimization Problem**:
               $t^* = \\arg\\max_{t \\in [0.3, 0.9]} F_1(y, \\mathbb{1}[\\hat{p} \\geq t])$
               $\\text{subject to } t \\geq 0.5$
             
@@ -2246,13 +2246,13 @@ def main():
                 0, & \\text{otherwise}
               \\end{cases}$
             
-            - **Optimizasyon Metodolojisi**:
-              1. Threshold kümesi: $T = \\{0.3, 0.35, 0.4, ..., 0.85, 0.9\\}$
-              2. Her $t \\in T$ için $F_1(t)$ hesapla
-              3. Maksimum $F_1$ değerine sahip $t$ değerini bul: $t' = \\arg\\max_{t \\in T} F_1(t)$
-              4. Constraint'i uygula: $t^* = \\max(t', 0.5)$
+            - **Optimization Methodology**:
+              1. Threshold set: $T = \\{0.3, 0.35, 0.4, ..., 0.85, 0.9\\}$
+              2. Calculate $F_1(t)$ for each $t \\in T$
+              3. Find the value of $t$ with maximum $F_1$ value: $t' = \\arg\\max_{t \\in T} F_1(t)$
+              4. Apply constraint: $t^* = \\max(t', 0.5)$
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             def find_optimal_threshold(y_true, y_pred_proba):
                 # Threshold değerleri 0.3 ile 0.9 arasında 0.05 artışlarla
@@ -2294,23 +2294,23 @@ def main():
             
         with st.expander("7. Probability Calibration", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
-            - **Base Calibration Method**: Sigmoid fonksiyonu ile olasılık kalibrasyonu
-            - **Anchoring Strategy**: Dataset base rate'e (11%) göre sigmoid fonksiyonu ayarlama
-            - **Tuning Parameter**: Duration faktörünün ağırlığını sınırlama
+            **Technical Details:**
+            - **Base Calibration Method**: Probability calibration with sigmoid function
+            - **Anchoring Strategy**: Adjusting sigmoid function according to dataset base rate (11%)
+            - **Tuning Parameter**: Limiting the weight of the duration factor
             
-            **Matematiksel Gösterim:**
-            - **Standart Sigmoid Fonksiyonu**: $\\sigma(x) = \\frac{1}{1 + e^{-x}}$
+            **Mathematical Representation:**
+            - **Standard Sigmoid Function**: $\\sigma(x) = \\frac{1}{1 + e^{-x}}$
             
-            - **Context-Aware Kalibrasyon**: 
+            - **Context-Aware Calibration**: 
               $P(y=1|\\mathbf{x}) = b + (\\sigma(\\alpha(f_\\text{duration}(\\mathbf{x}) - \\beta)) - 0.5) \\cdot \\gamma$
             
-            - **Parametreler**:
-              - $b$: Base probability (0.11 - veri setindeki pozitif sınıf oranı)
-              - $\\alpha$: Sigmoid eğriliği (4.0 olarak ayarlandı)
-              - $\\beta$: Sigmoid merkez değeri (0.5 olarak ayarlandı)
-              - $\\gamma$: Skalama faktörü (0.15 olarak ayarlandı)
-              - $f_\\text{duration}$: Normalize edilmiş duration değeri (0-1 arası)
+            - **Parameters**:
+              - $b$: Base probability (0.11 - positive class ratio in the dataset)
+              - $\\alpha$: Sigmoid curvature (set to 4.0)
+              - $\\beta$: Sigmoid center value (set to 0.5)
+              - $\\gamma$: Scaling factor (set to 0.15)
+              - $f_\\text{duration}$: Normalized duration value (between 0-1)
             
             - **Negative Signal Adjustment**:
               $P'(y=1|\\mathbf{x}) = \\begin{cases} 
@@ -2318,7 +2318,7 @@ def main():
                 P(y=1|\\mathbf{x}), & \\text{otherwise}
               \\end{cases}$
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             class SimpleModel:
                 def predict_proba(self, X):
@@ -2373,21 +2373,21 @@ def main():
             
         with st.expander("8. Deployment", expanded=False):
             st.markdown("""
-            **Teknik Detaylar:**
+            **Technical Details:**
             - **Framework**: Streamlit Interactive Web Application
-            - **Model Serving**: Pickle ile serialize edilmiş model yükleme
-            - **Inference Pipeline**: Real-time özellik transformasyonu ve tahmin
+            - **Model Serving**: Loading serialized model with Pickle
+            - **Inference Pipeline**: Real-time feature transformation and prediction
             
-            **Matematiksel Gösterim:**
-            - **Inference Süreci**:
+            **Mathematical Representation:**
+            - **Inference Process**:
               1. $\\mathbf{x}_{raw} \\rightarrow$ (Preprocessing) $\\rightarrow \\mathbf{x}_{processed}$
               2. $\\mathbf{x}_{processed} \\rightarrow$ (Model Inference) $\\rightarrow P(y=1|\\mathbf{x})$
               3. $P(y=1|\\mathbf{x}) \\rightarrow$ (Threshold Comparison) $\\rightarrow \\hat{y} = \\mathbb{1}[P(y=1|\\mathbf{x}) \\geq t^*]$
             
-            - **Model Loading ve Prediction**:
+            - **Model Loading and Prediction**:
               $\\hat{y} = f(\\mathbf{x}_{raw}) = \\mathbb{1}[model.predict\\_proba(preprocess(\\mathbf{x}_{raw}))_{[:,1]} \\geq t^*]$
             
-            **İmplementasyon Detayları:**
+            **Implementation Details:**
             ```python
             import streamlit as st
             import joblib
@@ -2440,48 +2440,48 @@ def main():
             """)
             
         # Technical innovations section
-        st.subheader("Teknik Yenilikler")
+        st.subheader("Technical Innovations")
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("""
-            **Öne Çıkan Teknik Yenilikler:**
+            **Key Technical Innovations:**
             
             1. **Enhanced Probability Calibration**
-               - Context-aware sigmoid transformasyonu
-               - Dataset dağılımına uygun conservative base rate (11%)
-               - Duration etkisini dengelemek için özel ayarlamalar
+               - Context-aware sigmoid transformation
+               - Conservative base rate (11%) aligned with dataset distribution
+               - Special adjustments to balance duration effect
             
             2. **Domain-Specific Feature Scaling**
-               - Feature semantics korunarak özel normalizasyon
-               - Duration için özelleştirilmiş ölçeklendirme
-               - Economic indicators için domain knowledge ile scaling
+               - Custom normalization preserving feature semantics
+               - Customized scaling for duration
+               - Scaling with domain knowledge for economic indicators
             
             3. **Precision-Focused Threshold Optimization**
-               - F1-score optimizasyonu
-               - İmbalanced data için minimum 0.5 threshold ile false positive kontrolü
-               - Farklı threshold değerlerinin performans etkilerinin analizi
+               - F1-score optimization
+               - Minimum 0.5 threshold with false positive control for imbalanced data
+               - Analysis of performance effects of different threshold values
             """)
             
         with col2:
             st.markdown("""
-            **Pratik Faydalar:**
+            **Practical Benefits:**
             
-            1. **Tahmin Güvenilirliği**
-               - Daha güvenilir ve dengeli olasılık tahminleri
-               - Yüksek olasılıklı müşterilerin doğru belirlenmesi
-               - False positive oranlarının azaltılması
+            1. **Prediction Reliability**
+               - More reliable and balanced probability predictions
+               - Accurate identification of high-probability customers
+               - Reduction of false positive rates
             
-            2. **Kullanıcı Deneyimi İyileştirmesi**
-               - Daha anlaşılır tahmin sonuçları
-               - Threshold ile ilgili görsel açıklamalar
-               - Modelin karar verme sürecine dair şeffaflık
+            2. **User Experience Improvement**
+               - More understandable prediction results
+               - Visual explanations related to threshold
+               - Transparency in the model's decision-making process
             
-            3. **Data-Driven Karar Desteği**
-               - Güvenilir olasılık tahminleri
-               - Feature importance ile önem analizi
-               - Farklı müşteri segmentlerinde performans değerlendirmesi
+            3. **Data-Driven Decision Support**
+               - Reliable probability predictions
+               - Importance analysis with feature importance
+               - Performance evaluation across different customer segments
             """)
 
 # Run the application
