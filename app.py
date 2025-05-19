@@ -307,16 +307,11 @@ def main():
     # Page selection
     page = st.sidebar.radio("Navigation", ["Predict", "Model Insights", "Project Overview", "Research Report", "Pipeline", "Live Training"])
     
-    # Load models and features
-    models, preprocess_objects = load_models()
-    
-    # Get optimal threshold from models dict or use default
-    optimal_threshold = models.get('optimal_threshold', 0.5)
-    
-    if isinstance(preprocess_objects, dict) and 'selected_feature_names' in preprocess_objects:
-        selected_features = preprocess_objects['selected_feature_names']
-    else:
-        selected_features = load_feature_info()
+    # Initialize variables
+    models = None
+    preprocess_objects = None
+    optimal_threshold = 0.5
+    selected_features = load_feature_info()
     
     # Model performance metrics to display
     model_metrics = {
@@ -333,6 +328,16 @@ def main():
     if page == "Predict":
         st.title("Bank Marketing Prediction")
         st.write("Use this app to predict if a customer will subscribe to a term deposit based on customer and previous campaign information.")
+        
+        # Only load models when on the Predict page
+        with st.spinner("Modeller yükleniyor..."):
+            models, preprocess_objects = load_models()
+            
+            # Get optimal threshold from models dict or use default
+            optimal_threshold = models.get('optimal_threshold', 0.5)
+            
+            if isinstance(preprocess_objects, dict) and 'selected_feature_names' in preprocess_objects:
+                selected_features = preprocess_objects['selected_feature_names']
         
         # Model selection section
         st.sidebar.title("Model Selection")
