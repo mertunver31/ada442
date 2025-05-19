@@ -1165,39 +1165,39 @@ def main():
                 st.warning("Feature importance visualization not available.")
             
             st.markdown("""
-            **Nasıl hesaplanır?**
-            Feature importance değerleri tree-based modellerden (Random Forest, XGBoost) çıkarılmıştır. Bu değerler, her bir özelliğin modelin tahmin başarısına katkısını gösterir. Özellikler her bir ağaç dallanmasında sağladıkları bilgi kazancına (information gain) göre puanlanır.
+            **How is it calculated?**
+            Feature importance values are derived from tree-based models (Random Forest, XGBoost). These values show each feature's contribution to the model's prediction accuracy. Features are scored based on the information gain they provide at each tree branching.
             
             **Key insights**:
-            - **Call duration** (görüşme süresi) en önemli göstergedir - genellikle ilgili müşteriler daha uzun görüşmeler yaparlar
-            - **Economic indicators** (euribor3m, nr.employed, emp.var.rate) güçlü bir etki gösterir - ekonomik koşullar müşteri davranışlarını belirgin şekilde etkiler
-            - **Days since previous contact** (pdays) ve **number of previous contacts** (previous) müşterinin geçmiş etkileşimlerinin önemini vurgular
-            - **Previous campaign outcome** (poutcome_success) - geçmiş başarılı kampanyalar gelecekteki başarının güçlü bir göstergesidir
+            - **Call duration** is the most important indicator - generally, interested customers have longer conversations
+            - **Economic indicators** (euribor3m, nr.employed, emp.var.rate) show a strong effect - economic conditions significantly influence customer behavior
+            - **Days since previous contact** (pdays) and **number of previous contacts** (previous) emphasize the importance of the customer's past interactions
+            - **Previous campaign outcome** (poutcome_success) - past successful campaigns are strong indicators of future success
             
-            **Teknik ayrıntılar**:
-            - Feature importance, Permutation Importance metodu ile hesaplanmıştır 
-            - Bu metod, her bir özelliğin değerlerini rassal olarak karıştırarak modelin başarısındaki düşüşü ölçer
-            - Özellik karıştırıldığında başarı düşüşü ne kadar büyükse, o özellik o kadar önemlidir
+            **Technical details**:
+            - Feature importance is calculated using the Permutation Importance method
+            - This method measures the decrease in model performance when each feature's values are randomly shuffled
+            - The larger the performance drop when a feature is shuffled, the more important that feature is
             """)
             
             # New section explaining importance of duration
             st.subheader("Duration Feature Analysis")
-            st.write("Duration (görüşme süresi) özelliğinin yüksek önemi ve bunun etkileri:")
+            st.write("The high importance of the Duration feature and its implications:")
             
             col1, col2 = st.columns([3, 2])
             
             with col1:
                 st.markdown("""
-                - **Circular Relationship**: Görüşme süresi tahmin için çok güçlü bir gösterge olmasına rağmen, bu süre ancak görüşme tamamlandıktan sonra bilinebilir, bu da kullanımını kısıtlar
+                - **Circular Relationship**: While call duration is a very strong predictor, it can only be known after the call is completed, which limits its practical use
                 
-                - **Distribution Differences**: Abone olan ve olmayan müşterilerin görüşme süresi dağılımları belirgin şekilde farklıdır:
-                  * Abone olanlar: Ortalama ~500 saniye
-                  * Abone olmayanlar: Ortalama ~250 saniye
+                - **Distribution Differences**: The distribution of call durations for subscribing and non-subscribing customers is notably different:
+                  * Subscribers: Average ~500 seconds
+                  * Non-subscribers: Average ~250 seconds
                 
-                - **Teknik Çözümler**:
-                  * Sigmoid transformation ile yüksek sürelerin aşırı etkisi azaltıldı
-                  * Threshold optimization sürecinde duration etkisi dikkate alındı
-                  * Kontrol mekanizmaları ile duration yüksek olsa bile diğer negative sinyaller varsa tahmin dengesi sağlandı
+                - **Technical Solutions**:
+                  * Sigmoid transformation was used to reduce the excessive influence of high durations
+                  * The impact of duration was taken into account in the threshold optimization process
+                  * Control mechanisms ensure balanced predictions even when duration is high but other negative signals are present
                 """)
             
             with col2:
@@ -1207,9 +1207,9 @@ def main():
                 
                 fig, ax = plt.subplots(figsize=(4, 3))
                 plt.plot(durations, subscription_rates, 'b-o')
-                plt.xlabel("Görüşme Süresi (saniye)")
-                plt.ylabel("Abonelik Olasılığı")
-                plt.title("Görüşme Süresi - Abonelik İlişkisi")
+                plt.xlabel("Call Duration (seconds)")
+                plt.ylabel("Subscription Probability")
+                plt.title("Call Duration - Subscription Relationship")
                 plt.grid(True, alpha=0.3)
                 st.pyplot(fig)
         
@@ -1226,12 +1226,12 @@ def main():
                     st.warning("Confusion matrix not available.")
                 
                 st.markdown("""
-                **Confusion Matrix Nedir?**
-                Confusion Matrix, bir sınıflandırma modelinin performansını gösteren tablodur:
-                - **True Positives (TP)**: Doğru pozitif tahminler
-                - **False Positives (FP)**: Yanlış pozitif tahminler (Type I error)
-                - **True Negatives (TN)**: Doğru negatif tahminler
-                - **False Negatives (FN)**: Yanlış negatif tahminler (Type II error)
+                **What is a Confusion Matrix?**
+                A Confusion Matrix is a table that shows the performance of a classification model:
+                - **True Positives (TP)**: Correct positive predictions
+                - **False Positives (FP)**: Incorrect positive predictions (Type I error)
+                - **True Negatives (TN)**: Correct negative predictions
+                - **False Negatives (FN)**: Incorrect negative predictions (Type II error)
                 """)
             
             with col2:
@@ -1242,11 +1242,11 @@ def main():
                     st.warning("ROC curve not available.")
                 
                 st.markdown("""
-                **ROC Curve Nedir?**
-                ROC (Receiver Operating Characteristic) eğrisi, farklı threshold değerlerinde True Positive Rate (TPR) ve False Positive Rate (FPR) değerlerini gösterir:
+                **What is a ROC Curve?**
+                The ROC (Receiver Operating Characteristic) curve shows the True Positive Rate (TPR) and False Positive Rate (FPR) at different threshold values:
                 - **TPR = TP / (TP + FN)**: Sensitivity (Recall)
                 - **FPR = FP / (FP + TN)**: 1 - Specificity
-                - **AUC**: Eğri altında kalan alan, modelin ayırt etme yeteneğini gösterir
+                - **AUC**: Area Under the Curve, indicates the model's ability to discriminate between classes
                 """)
             
             st.subheader("Performance Metrics")
@@ -1257,58 +1257,58 @@ def main():
                 st.metric("Accuracy", "90.37%", 
                          delta="+40.37%" if 0.9037 > 0.5 else "-9.63%", 
                          delta_color="normal",
-                         help="Tüm doğru tahminlerin oranı: (TP+TN)/(TP+TN+FP+FN)")
+                         help="Ratio of all correct predictions: (TP+TN)/(TP+TN+FP+FN)")
                 st.metric("Precision", "58.00%", 
                          delta="+8.00%" if 0.58 > 0.5 else "-42.00%", 
                          delta_color="normal",
-                         help="Pozitif tahminlerin ne kadarının gerçekten pozitif olduğu: TP/(TP+FP)")
+                         help="Ratio of true positives to all positive predictions: TP/(TP+FP)")
                 
             with col2:
                 st.metric("Recall", "42.96%", 
                          delta="-7.04%" if 0.4296 < 0.5 else "+7.04%", 
                          delta_color="normal",
-                         help="Gerçek pozitiflerin ne kadarının pozitif tahmin edildiği: TP/(TP+FN)")
+                         help="Ratio of true positives to all actual positives: TP/(TP+FN)")
                 st.metric("F1 Score", "49.36%", 
                          delta="-0.64%" if 0.4936 < 0.5 else "+0.64%", 
                          delta_color="normal",
-                         help="Precision ve Recall'un harmonik ortalaması: 2*(Precision*Recall)/(Precision+Recall)")
+                         help="Harmonic mean of Precision and Recall: 2*(Precision*Recall)/(Precision+Recall)")
                 
             with col3:
                 st.metric("ROC AUC", "92.67%", 
                          delta="+42.67%" if 0.9267 > 0.5 else "-7.33%", 
                          delta_color="normal",
-                         help="ROC eğrisi altında kalan alan. Rastgele tahminin AUC değeri 0.5'tir.")
+                         help="Area under the ROC curve. Random guessing has an AUC value of 0.5.")
             
             st.markdown("""
-            **Metrics değerlendirmesi**:
-            - **Accuracy**: İmbalanced dataset'te (89% 'no' vs 11% 'yes') yüksek doğruluk elde edildi
-            - **Precision**: Abonelik tahmini yapılan müşterilerin %58'i gerçekten abone oluyor
-            - **Recall**: Gerçekte abone olan müşterilerin %43'ü model tarafından doğru tahmin ediliyor
-            - **F1 Score**: Precision ve Recall arasında dengeli bir ölçüm
-            - **ROC AUC**: 0.93 değeri, modelin sınıfları ayırt etmede çok başarılı olduğunu gösteriyor (random guessing: 0.5)
+            **Metrics evaluation**:
+            - **Accuracy**: High accuracy achieved on an imbalanced dataset (89% 'no' vs 11% 'yes')
+            - **Precision**: 58% of customers predicted to subscribe actually do subscribe
+            - **Recall**: 43% of actual subscribers are correctly predicted by the model
+            - **F1 Score**: A balanced measure between Precision and Recall
+            - **ROC AUC**: A value of 0.93 indicates that the model is very successful at distinguishing between classes (random guessing: 0.5)
             """)
             
-            st.subheader("Model Karşılaştırması")
+            st.subheader("Model Comparison")
             try:
                 st.image("optimization/optimization_f1_comparison.png", use_column_width=True)
             except:
                 st.warning("Model comparison visualization not available.")
             
             st.markdown("""
-            **Model Değerlendirmesi**:
-            - **Stacking Ensemble**: En yüksek genel performansı sağlayan modeldir
-            - **XGBoost**: Tek model olarak en iyi performansa sahiptir
-            - **Ensemble yaklaşımı**: Farklı model tiplerinin güçlü yönlerini birleştirerek daha tutarlı tahminler sağlar
-            - **Basit modeller**: Logistic Regression gibi basit modeller bile feature engineering ve hyperparameter optimization sonrası makul performans gösterir
+            **Model Evaluation**:
+            - **Stacking Ensemble**: Provides the best overall performance
+            - **XGBoost**: Has the best performance as a single model
+            - **Ensemble approach**: Combines the strengths of different model types to provide more consistent predictions
+            - **Simple models**: Even simple models like Logistic Regression show reasonable performance after feature engineering and hyperparameter optimization
             """)
             
         with tab3:
             st.subheader("Threshold Optimization Analysis")
             
             st.markdown("""
-            Tahmin modellerimiz bir olasılık değeri (0-1 arası) üretir. Bu değerin hangi eşik seviyesinde (threshold) 
-            'evet' veya 'hayır' olarak yorumlanacağı kritik bir konudur. Özellikle imbalanced veri setlerinde 
-            default 0.5 threshold her zaman optimum değildir.
+            Our prediction models produce a probability value (between 0 and 1). Determining at what threshold level
+            this value should be interpreted as 'yes' or 'no' is a critical issue. Especially in imbalanced datasets,
+            the default 0.5 threshold is not always optimal.
             """)
             
             # Create visualization of threshold effects
@@ -1334,26 +1334,26 @@ def main():
             st.pyplot(fig)
             
             st.markdown("""
-            **Threshold Optimization sürecimiz**:
+            **Our Threshold Optimization process**:
             
-            1. **F1-score optimizasyonu**: 0.3 ile 0.9 arasındaki threshold değerleri test edildi
-            2. **Minimum threshold yaptırımı**: Yanlış pozitifleri azaltmak için minimum 0.5 threshold kısıtlaması uygulandı
-            3. **Precision odaklı yaklaşım**: İmbalanced dataset için precision metriği önceliklendirilerek gereksiz tahminler azaltıldı
+            1. **F1-score optimization**: Threshold values between 0.3 and 0.9 were tested
+            2. **Minimum threshold constraint**: A minimum threshold of 0.5 was applied to reduce false positives
+            3. **Precision-focused approach**: Precision metric was prioritized for imbalanced dataset to reduce unnecessary predictions
             
-            **Threshold değiştirmenin etkileri**:
+            **Effects of changing the threshold**:
             
-            - **Düşük threshold (< 0.5)**:
-              * Daha fazla pozitif tahmin (abonelik tahmini)
-              * Yüksek recall, düşük precision
-              * Daha fazla yanlış pozitif (false positive)
+            - **Low threshold (< 0.5)**:
+              * More positive predictions (subscription predictions)
+              * High recall, low precision
+              * More false positives
             
-            - **Yüksek threshold (> 0.5)**:
-              * Daha az pozitif tahmin
-              * Düşük recall, yüksek precision
-              * Çok sayıda yanlış negatif (false negative)
+            - **High threshold (> 0.5)**:
+              * Fewer positive predictions
+              * Low recall, high precision
+              * Many false negatives
             
-            **Neden minimum 0.5 threshold?**
-            İmbalanced dataset'te (%89 'hayır' vs %11 'evet') 0.5'in altındaki threshold değerleri çok sayıda false positive üretir, bu da modelin genel performansını ve güvenilirliğini azaltır.
+            **Why minimum 0.5 threshold?**
+            In an imbalanced dataset (89% 'no' vs 11% 'yes'), threshold values below 0.5 produce too many false positives, which reduces the model's overall performance and reliability.
             """)
             
             # Show a precision-recall tradeoff visualization
@@ -1388,17 +1388,17 @@ def main():
             st.markdown("""
             **Precision-Recall Tradeoff**:
             
-            Yukarıdaki grafik, pozitif sınıf ('yes' - abonelik) için Precision ve Recall arasındaki ters ilişkiyi gösterir:
+            The above graph shows the inverse relationship between Precision and Recall for the positive class ('yes' - subscription):
             
-            - **T1 (Yüksek threshold)**: Çok yüksek precision, düşük recall - sadece çok emin olduğumuz örnekler pozitif tahmin ediliyor
-            - **T2 (Optimum threshold)**: Precision ve recall arasında iyi bir denge
-            - **T3 (Orta threshold)**: Daha fazla örnek pozitif olarak tahmin ediliyor, precision düşüyor
-            - **T4 (Düşük threshold)**: Çok sayıda örnek pozitif olarak tahmin ediliyor, precision oldukça düşük
+            - **T1 (High threshold)**: Very high precision, low recall - only predicting as positive when we are very confident
+            - **T2 (Optimum threshold)**: Good balance between precision and recall
+            - **T3 (Medium threshold)**: More examples predicted as positive, precision decreases
+            - **T4 (Low threshold)**: Many examples predicted as positive, precision is quite low
             
-            **Optimal threshold seçimi teknik prensipleri**:
-            1. F1-Score maksimizasyonu (precision ve recall dengesi)
-            2. Veri setindeki doğal dengesizliğin dikkate alınması (imbalance ratio)
-            3. Model kararlılığı ve güvenilirliği
+            **Optimal threshold selection technical principles**:
+            1. F1-Score maximization (balance between precision and recall)
+            2. Considering the natural imbalance in the dataset (imbalance ratio)
+            3. Model stability and reliability
             """)
     
     elif page == "Project Overview":
